@@ -1,0 +1,41 @@
+[build-system]
+requires = [ "string", "options = { required = true }" ]
+build-backend = "string"
+
+[project]
+authors = [ { name = "string", email = "string" } ]
+classifiers = [ "string" ]
+dependencies = [ "string" ]
+description = "string"
+dynamic = [ "string" ]
+keywords = [ "string" ]
+license = [
+    "union",
+    "string",
+    { file = "string" },
+    { text = "string" },
+]
+license-files = [ "string" ]
+maintainers = [ { name = "string", email = "string" } ]
+name = "string = { required = true }"
+optional-dependencies = { "*" = [ "string" ] }
+readme = [
+    "union",
+    "string",
+    { file = "string", text = "string"}
+]
+requires-python = "string"
+urls = { "*" = "string" }
+version = "string"
+
+[project.scripts]
+"*" = "string"
+
+[project.gui-scripts]
+"*" = "string"
+
+[project.entry-points."*"]
+"*" = "string"
+
+[tool."*"]
+"*" = "any-value"

@@ -1,0 +1,10 @@
+# python cache:
+__pycache__
+# tox working folder:
+/.tox
+# coverage data files:
+/.coverage
+# wheel build files:
+/build
+/toml_schema.egg-info
+

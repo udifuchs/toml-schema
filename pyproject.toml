@@ -1,0 +1,68 @@
+[project]
+name = "toml-schema"
+dependencies = [
+    "tomli; python_version<'3.11'",
+]
+description = "TOML Obvious Minimal Schema"
+authors = [
+    { name = "Udi Fuchs", email = "udifuchs@gmail.com" },
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+readme = "README.md"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+keywords = [ "toml" ]
+dynamic = [ "version" ]
+
+[project.urls]
+"Homepage" = "https://github.com/udifuchs/toml-schema"
+
+[project.scripts]
+toml-schema = "toml_schema.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "toml_schema.__version__" }
+
+[tool.mypy]
+files = [ "toml_schema", "tests" ]
+strict = true
+disallow_any_expr = true
+python_version = "3.11"
+
+[tool.ruff]
+include = [ "toml_schema/*.py", "tests/*.py" ]
+
+[tool.ruff.lint]
+select = [ "ALL" ]
+
+ignore = [
+    "COM812",  # Trailing comma missing
+    "D107",  # Missing docstring in __init__
+    "EM101",  # Exception must not use a string literal, assign to variable first
+    "EM102",  # Exception must not use an f-string literal, assign to variable first
+    "FA100",  # Add `from __future__ import annotations` to simplify `typing.Optional`
+    "PLR2004",  # Magic value used in comparison, consider replacing `2` with a constant variable
+    "TC006",  # Add quotes to type expression in `typing.cast()`
+    "TRY003",  # Avoid specifying long messages outside the exception class
+]
+
+pydocstyle.convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"toml_schema/_toml_schema.py" = [
+    "ISC001",  # Implicitly concatenated string literals on one line
+]
+
+"toml_schema/__main__.py" = [
+    "T201",  # `print` found
+]
+
+"tests/*.py" = [
+    "S101",  # Use of 'assert' detected
+    "INP001", # File `tests/test_schema.py` is part of an implicit namespace package.
+]
