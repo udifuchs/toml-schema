@@ -3,26 +3,54 @@ requires = [ "string", "options = { required = true }" ]
 build-backend = "string"
 
 [project]
-authors = [ { name = "string", email = "string" } ]
+authors = [ [
+    "union",
+    { name = "string = { required = true }", email = "string" },
+    { name = "string", email = "string = { required = true }" },
+] ]
 classifiers = [ "string" ]
 dependencies = [ "string" ]
 description = "string"
-dynamic = [ "string" ]
+dynamic = [ """[string]
+    tokens = [
+        "version",
+        "description",
+        "readme",
+        "requires-python",
+        "license",
+        "license-files",
+        "authors",
+        "maintainers",
+        "keywords",
+        "classifiers",
+        "urls",
+        "scripts",
+        "gui-scripts",
+        "entry-points",
+        "dependencies",
+        "optional-dependencies",
+    ]""" ]
 keywords = [ "string" ]
 license = [
     "union",
     "string",
-    { file = "string" },
-    { text = "string" },
+    { file = "string = { required = true }" },
+    { text = "string = { required = true }" },
 ]
 license-files = [ "string" ]
-maintainers = [ { name = "string", email = "string" } ]
+maintainers = [ [
+    "union",
+    { name = "string = { required = true }", email = "string" },
+    { name = "string", email = "string = { required = true }" },
+] ]
 name = "string = { required = true }"
 optional-dependencies = { "*" = [ "string" ] }
 readme = [
     "union",
     "string",
-    { file = "string", text = "string"}
+    { file = "string = { required = true }", content-type = "string" },
+    { text = "string = { required = true }", content-type = "string" },
+    { content-type = "string = { required = true }" },
 ]
 requires-python = "string"
 urls = { "*" = "string" }
@@ -36,6 +64,13 @@ version = "string"
 
 [project.entry-points."*"]
 "*" = "string"
+
+[dependency-groups]
+"*" = [ [
+    "union",
+    "string",
+    { include-group = "string = { required = true }" },
+] ]
 
 [tool."*"]
 "*" = "any-value"
