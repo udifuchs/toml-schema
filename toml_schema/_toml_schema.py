@@ -53,6 +53,7 @@ class SchemaElement:
     """Base class for schema elements."""
 
     required: bool = False
+    _address: str = dataclasses.field(default="", compare=False)
 
     def __str__(self) -> str:
         # Omit default fields in object string representation. Based on:
@@ -62,6 +63,7 @@ class SchemaElement:
             field
             for field in fields
             if cast(object, getattr(self, field.name)) != field.default
+            and not field.name.startswith("_")
         ]
         if len(non_default) == 0:
             return f"{_type_name(self.__class__)}"
@@ -82,6 +84,16 @@ class String(SchemaElement):
     """String schema type."""
 
     tokens: Optional[list[str]] = None
+    pattern: Optional[str] = None
+    _regex: Optional[re.Pattern[str]] = dataclasses.field(init=False, default=None)
+
+    def __post_init__(self) -> None:
+        if self.pattern is not None:
+            try:
+                regex: re.Pattern[str] = re.compile(self.pattern)
+            except re.error as ex:
+                raise SchemaError(f"String pattern: {ex}", self._address) from None
+            object.__setattr__(self, "_regex", regex)
 
     def validate(self, value: TOMLValue, /, *, context: str) -> None:
         """Validate value for string type."""
@@ -89,6 +101,12 @@ class String(SchemaElement):
             raise SchemaError(f"Value {_format_attr(value)} is not: {self}", context)
         if self.tokens is not None and value not in self.tokens:
             raise SchemaError(f"'{value}' not in {self.tokens}", context)
+        if self._regex is not None:
+            result = self._regex.match(value)
+            if result is None:
+                raise SchemaError(
+                    f"'{value}' does not match pattern: {self.pattern}", context
+                )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -201,9 +219,14 @@ BARE_KEY_CHARS = frozenset(
 # fmt: on
 
 
+def _is_bare_key(key: str) -> bool:
+    """Test if key is a valid TOML bare key."""
+    return all(char in BARE_KEY_CHARS for char in key)
+
+
 def toml_key_to_str(key: str) -> str:
     """Quote TOML key when needed."""
-    if all(char in BARE_KEY_CHARS for char in key):
+    if _is_bare_key(key):
         return key
     escape_quotes = key.replace('"', '\\"')
     return f'"{escape_quotes}"'
@@ -227,7 +250,7 @@ class Table(SchemaElement, dict[str, SchemaElement]):
         required: bool = False,
         _address: str = "",
     ) -> None:
-        SchemaElement.__init__(self, required=required)
+        SchemaElement.__init__(self, required=required, _address=_address)
         dict.__init__(self, schema_table)
         if "*" in self and self["*"].required:
             raise SchemaError(
@@ -287,7 +310,7 @@ class Array(SchemaElement, list[SchemaElement]):
         required: bool = False,
         _address: str = "",
     ) -> None:
-        SchemaElement.__init__(self, required=required)
+        SchemaElement.__init__(self, required=required, _address=_address)
         list.__init__(self, schema_list)
 
         if len(self) == 0:
@@ -334,7 +357,7 @@ class UnionContainer(SchemaElement, list[SchemaElement]):
         required: bool = False,
         _address: str = "",
     ) -> None:
-        SchemaElement.__init__(self, required=required)
+        SchemaElement.__init__(self, required=required, _address=_address)
         list.__init__(self, schema_list)
 
         if any(sum(1 for elem_2 in self if elem_1 == elem_2) > 1 for elem_1 in self):
@@ -377,15 +400,19 @@ class UnionContainer(SchemaElement, list[SchemaElement]):
 
 
 def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
-    # Loops ONLY over direct subclasses of SchemaElement:
-    for type_class in SchemaElement.__subclasses__():
-        if _type_name(type_class) == toml_type and toml_type in TYPES_SCHEMA_TABLE:
-            return type_class()  # optionless types like "string".
+    if _is_bare_key(toml_type):
+        # Loops ONLY over direct subclasses of SchemaElement:
+        for type_class in SchemaElement.__subclasses__():
+            if _type_name(type_class) == toml_type and toml_type in TYPES_SCHEMA_TABLE:
+                return type_class(_address=_address)  # optionless types like "string".
+        raise SchemaError(f"'{toml_type}' is not a valid keyword type.", _address)
 
     try:
         toml_type_toml: dict[str, TOMLValue] = tomllib.loads(toml_type)
-    except tomllib.TOMLDecodeError:
-        raise SchemaError(f"'{toml_type}' is not a valid type.", _address) from None
+    except tomllib.TOMLDecodeError as ex:
+        raise SchemaError(
+            f"'{toml_type}' is not a valid type: {ex}", _address
+        ) from None
 
     try:
         TYPES_SCHEMA.validate(toml_type_toml, context="")
@@ -394,7 +421,7 @@ def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
 
     if len(toml_type_toml) != 1:
         toml_type_str = toml_type.replace("\n", "\\n")
-        raise SchemaError(f"'{toml_type_str}' must be a single line.", _address)
+        raise SchemaError(f"'{toml_type_str}' must have a single key.", _address)
     # Get type name. For "Float = { min = 3.3' }" it would be "Float".
     type_name = next(iter(toml_type_toml))
 
@@ -404,6 +431,7 @@ def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
             # It is not possible to static check the call parameters typing.
             # But the types schema validation guarantees the typing dynamically.
             return type_class(
+                _address=_address,
                 **toml_type_toml[type_name],  # type: ignore[arg-type]
             )
 
@@ -460,11 +488,11 @@ def from_toml_table(
     if "_" in schema_table and isinstance(schema_table["_"], Options):
         required = schema_table["_"].required
         del schema_table["_"]
-    return Table(schema_table, _address=_address, required=required)
+    return Table(schema_table, required=required, _address=_address)
 
 
 TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
-    "string": {"required": "boolean", "tokens": ["string"]},
+    "string": {"required": "boolean", "tokens": ["string"], "pattern": "string"},
     "float": {"required": "boolean", "min": "float", "max": "float"},
     "integer": {"required": "boolean", "min": "integer", "max": "integer"},
     "boolean": {"required": "boolean"},

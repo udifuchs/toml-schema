@@ -3,6 +3,13 @@ requires = [ "string", "options = { required = true }" ]
 build-backend = "string"
 
 [project]
+name = """[string]
+    required = true
+    pattern = '^([a-zA-Z\\d]|[a-zA-Z\\d][\\w.-]*[a-zA-Z\\d])$'
+"""
+version = """[string]
+    pattern = '^v?((([0-9]+)!)?([0-9]+(\\.[0-9]+)*)([-_\\.]?(alpha|a|beta|b|preview|pre|c|rc)[-_\\.]?([0-9]+)?)?((-([0-9]+))|([-_\\.]?(post|rev|r)[-_\\.]?([0-9]+)?))?([-_\\.]?(dev)[-_\\.]?([0-9]+)?)?)(\\+([a-z0-9]+([-_\\.][a-z0-9]+)*))?$'
+"""
 authors = [ [
     "union",
     { name = "string = { required = true }", email = "string" },
@@ -43,7 +50,6 @@ maintainers = [ [
     { name = "string = { required = true }", email = "string" },
     { name = "string", email = "string = { required = true }" },
 ] ]
-name = "string = { required = true }"
 optional-dependencies = { "*" = [ "string" ] }
 readme = [
     "union",
@@ -54,7 +60,6 @@ readme = [
 ]
 requires-python = "string"
 urls = { "*" = "string" }
-version = "string"
 
 [project.scripts]
 "*" = "string"

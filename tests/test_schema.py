@@ -59,11 +59,11 @@ def test_create_schema() -> None:
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.loads("apple = 'Table'")
-    assert str(exc_info.value) == "'apple': 'Table' is not a valid type."
+    assert str(exc_info.value) == "'apple': 'Table' is not a valid keyword type."
 
     # Internal toml-schema schema for basic TOML types with parameters:
     types_schema_str = """\
-        string = { required = "boolean", tokens = [ "string" ] }
+        string = { required = "boolean", tokens = [ "string" ], pattern = "string" }
         float = { required = "boolean", min = "float", max = "float" }
         integer = { required = "boolean", min = "integer", max = "integer" }
         boolean = { required = "boolean" }
@@ -694,20 +694,30 @@ def test_check_error() -> None:
     """
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         check(schema, toml)
-    assert str(exc_info.value) == "'*': 'table' is not a valid type."
+    assert str(exc_info.value) == "'*': 'table' is not a valid keyword type."
+
+    schema = """
+        "*" = "table ="
+    """
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        check(schema, toml)
+    assert (
+        str(exc_info.value) == "'*': 'table =' is not a valid type: "
+        "Invalid value (at end of document)"
+    )
 
 
 def test_toml_schema_schema() -> None:
     """Test the schema of the TOML schema."""
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple": "stringly"})
-    assert str(exc_info.value) == "'apple': 'stringly' is not a valid type."
+    assert str(exc_info.value) == "'apple': 'stringly' is not a valid keyword type."
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple": "string = {}\nfloat = {}"})
     assert (
         str(exc_info.value)
-        == "'apple': 'string = {}\\nfloat = {}' must be a single line."
+        == "'apple': 'string = {}\\nfloat = {}' must have a single key."
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -715,7 +725,7 @@ def test_toml_schema_schema() -> None:
     assert (
         str(exc_info.value) == "'apple': 'string = { banana = true }' "
         "schema error: 'string': Key 'banana' not in schema: "
-        '{ required = "boolean", tokens = [ "string" ] }'
+        '{ required = "boolean", tokens = [ "string" ], pattern = "string" }'
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -723,7 +733,8 @@ def test_toml_schema_schema() -> None:
     assert (
         str(exc_info.value)
         == "'apple': 'stringly = {}' schema error: root: Key 'stringly' not in schema: "
-        '{ string = { required = "boolean", tokens = [ "string" ] }, '
+        "{ string = "
+        '{ required = "boolean", tokens = [ "string" ], pattern = "string" }, '
         'float = { required = "boolean", min = "float", max = "float" }, '
         'integer = { required = "boolean", min = "integer", max = "integer" }, '
         'boolean = { required = "boolean" }, '
@@ -756,7 +767,7 @@ def test_toml_string_type() -> None:
     assert (
         str(exc_info.value) == "'apple': 'string = { max = 3 }' schema error: "
         "'string': Key 'max' not in schema: "
-        """{ required = "boolean", tokens = [ "string" ] }"""
+        """{ required = "boolean", tokens = [ "string" ], pattern = "string" }"""
     )
 
     schema = toml_schema.from_toml_table(
@@ -773,6 +784,40 @@ def test_toml_string_type() -> None:
     assert (
         str(exc_info.value) == "'color': Value true is not: "
         "string = { tokens = ['Red', 'Green', 'Blue'] }"
+    )
+
+
+def test_toml_string_pattern() -> None:
+    """Test TOML string regular expression pattern matching."""
+    schema = toml_schema.from_toml_table(
+        {
+            "name": """
+            [string]
+            pattern = '^([a-zA-Z\\d]|[a-zA-Z\\d][\\w.-]*[a-zA-Z\\d])$'
+            """
+        }
+    )
+    schema.validate({"name": "toml-schema"})
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"name": "-toml-schema"})
+    assert (
+        str(exc_info.value) == "'name': '-toml-schema' does not match pattern: "
+        r"^([a-zA-Z\d]|[a-zA-Z\d][\w.-]*[a-zA-Z\d])$"
+    )
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        toml_schema.from_toml_table(
+            {
+                "name": """
+                [string]
+                pattern = '^([a-zA-Z\\d]|[a-zA-Z\\d][\\w.-]*[a-zA-Z\\d]$'
+                """
+            }
+        )
+    assert (
+        str(exc_info.value) == "'name': String pattern: "
+        "missing ), unterminated subpattern at position 1"
     )
 
 
@@ -1031,9 +1076,7 @@ def test_main(capsys: pytest.CaptureFixture[str]) -> None:
     assert captured.err == ""
 
     # Check schema of pyproject.toml full example from https://packaging.python.org/
-    run_toml_schema(
-        "examples/pyproject.toml-schema", "examples/full-example-pyproject.toml"
-    )
+    run_toml_schema("examples/pyproject.toml-schema", "examples/pyproject.toml")
     captured = capsys.readouterr()
     assert captured.out == "TOML schema validated.\n"
     assert captured.err == ""
@@ -1049,4 +1092,6 @@ def test_main(capsys: pytest.CaptureFixture[str]) -> None:
         run_toml_schema("pyproject.toml", "examples/pyproject.toml-schema")
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert captured.err == "'project.name': 'toml-schema' is not a valid type.\n"
+    assert (
+        captured.err == "'project.name': 'toml-schema' is not a valid keyword type.\n"
+    )
