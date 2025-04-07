@@ -56,3 +56,14 @@ spam-gui = "spam:main_gui"
 
 [project.entry-points."spam.magical"]
 tomatoes = "spam:main_tomatoes"
+
+[dependency-groups]
+group-a = ["foo"]
+group-b = ["foo>1.0"]
+group-c = ["foo<1.0"]
+all = [
+    "foo",
+    {include-group = "group-a"},
+    {include-group = "group-b"},
+    {include-group = "group-c"},
+]

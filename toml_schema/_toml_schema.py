@@ -52,7 +52,6 @@ def _format_attr(attr: object) -> str:
 class SchemaElement:
     """Base class for schema elements."""
 
-    required: bool = False
     _address: str = dataclasses.field(default="", compare=False)
 
     def __str__(self) -> str:
@@ -79,6 +78,68 @@ class SchemaElement:
         raise NotImplementedError
 
 
+def _name_required() -> str:
+    """Make sure that SchemaKey.name is always specified.
+
+    Once python 3.9 support is dropped, SchemaElement._address can be marked as kw_only,
+    making this function redundant.
+    """
+    raise ValueError("Field 'name' required.")  # pragma: no cover
+
+
+@dataclasses.dataclass(frozen=True)
+class SchemaKey(SchemaElement):
+    """Schema for table keys."""
+
+    name: str = dataclasses.field(default_factory=_name_required)
+    required: bool = False
+    pattern: Optional[str] = None
+    _regex: Optional[re.Pattern[str]] = dataclasses.field(init=False, default=None)
+
+    def __post_init__(self) -> None:
+        if self.pattern is not None:
+            if self.name != "*":
+                raise SchemaError(
+                    f"'{self}': Only wildcard keys can have a pattern.", self._address
+                )
+            try:
+                regex: re.Pattern[str] = re.compile(self.pattern)
+            except re.error as ex:
+                raise SchemaError(
+                    f"Key pattern '{self.pattern}': {ex}", self._address
+                ) from None
+            object.__setattr__(self, "_regex", regex)
+
+        if self.name == "*" and self.required:
+            raise SchemaError(
+                "Wildcard key '*' cannot be marked as required.", self._address
+            )
+
+    def __str__(self) -> str:
+        if self.required:
+            key_str = self.toml_key_name().replace('"', '\\"')
+            return f'"{key_str} = {{ required = {_format_attr(self.required)} }}"'
+        if self.pattern is not None:
+            return f'''"{self.name!r} = {{ pattern = '{self.pattern}' }}"'''
+        return self.toml_key_name()
+
+    def wildcard_match(self, value: str) -> bool:
+        """Check if value matches with wildcard key."""
+        if self.name != "*":
+            return False
+        if self._regex is None:
+            return True
+        result = self._regex.match(value)
+        return result is not None
+
+    def toml_key_name(self) -> str:
+        """Quote TOML key when needed."""
+        if _is_bare_key(self.name):
+            return self.name
+        escape_quotes = self.name.replace('"', '\\"')
+        return f'"{escape_quotes}"'
+
+
 @dataclasses.dataclass(frozen=True)
 class String(SchemaElement):
     """String schema type."""
@@ -92,7 +153,9 @@ class String(SchemaElement):
             try:
                 regex: re.Pattern[str] = re.compile(self.pattern)
             except re.error as ex:
-                raise SchemaError(f"String pattern: {ex}", self._address) from None
+                raise SchemaError(
+                    f"String pattern '{self.pattern}': {ex}", self._address
+                ) from None
             object.__setattr__(self, "_regex", regex)
 
     def validate(self, value: TOMLValue, /, *, context: str) -> None:
@@ -207,10 +270,6 @@ class Union(SchemaElement):
     """A marker for a union of TOML schema types."""
 
 
-class Options(SchemaElement):
-    """A marker for options in TOML schema containers."""
-
-
 # TOML bare key chars copied from: cpython/Lib/tomllib/_parser.py
 # fmt: off
 BARE_KEY_CHARS = frozenset(
@@ -224,14 +283,6 @@ def _is_bare_key(key: str) -> bool:
     return all(char in BARE_KEY_CHARS for char in key)
 
 
-def toml_key_to_str(key: str) -> str:
-    """Quote TOML key when needed."""
-    if _is_bare_key(key):
-        return key
-    escape_quotes = key.replace('"', '\\"')
-    return f'"{escape_quotes}"'
-
-
 def schema_value_to_str(value: SchemaElement) -> str:
     """Non-container values in TOML schema are quoted strings."""
     if isinstance(value, (Table, Array, UnionContainer)):
@@ -239,39 +290,38 @@ def schema_value_to_str(value: SchemaElement) -> str:
     return f'"{value}"'
 
 
-class Table(SchemaElement, dict[str, SchemaElement]):
+class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
     """Table schema container."""
 
     def __init__(
         self,
-        schema_table: Mapping[str, SchemaElement],
+        schema_table: Mapping[SchemaKey, SchemaElement],
         /,
         *,
-        required: bool = False,
         _address: str = "",
     ) -> None:
-        SchemaElement.__init__(self, required=required, _address=_address)
+        SchemaElement.__init__(self, _address=_address)
         dict.__init__(self, schema_table)
-        if "*" in self and self["*"].required:
-            raise SchemaError(
-                "Wildcard key '*' cannot be marked as required.", _address
+
+        key_count = {
+            key_1: sum(
+                1
+                for key_2 in self
+                if key_1.name == key_2.name and key_1.pattern == key_2.pattern
             )
-        keys = [
-            repr(key) for key, schema in self.items() if isinstance(schema, Options)
-        ]
-        if len(keys) > 0:
+            for key_1 in self
+        }
+        if any(count > 1 for count in key_count.values()):
             raise SchemaError(
-                f"Options in table schema must use '_' key, not: {', '.join(keys)}",
-                _address,
+                "Duplicate keys in table: "
+                f"{[str(key) for key, count in key_count.items() if count > 1]}",
+                self._address,
             )
 
     def __str__(self) -> str:
         values = [
-            f"{toml_key_to_str(key)} = {schema_value_to_str(value)}"
-            for key, value in self.items()
+            f"{key} = {schema_value_to_str(value)}" for key, value in self.items()
         ]
-        if self.required:
-            values.append('"_" = "options = { required = true }"')
         return "{ }" if len(values) == 0 else f"{{ {', '.join(values)} }}"
 
     def __eq__(self, other: object) -> bool:
@@ -284,19 +334,26 @@ class Table(SchemaElement, dict[str, SchemaElement]):
         if type(value) is not dict:
             raise SchemaError(f"Value {_format_attr(value)} is not: {self}", context)
         for key, element in value.items():
-            if key in self:
-                schema = self[key]
-            elif "*" in self:
-                schema = self["*"]
+            # Check if key is in schema:
+            for schema_key, schema_value in self.items():
+                if key == schema_key.name:
+                    schema = schema_value
+                    break
             else:
-                raise SchemaError(f"Key '{key}' not in schema: {self}", context)
+                # Check if key matches any wildcard schema key:
+                for schema_key, schema_value in self.items():
+                    if schema_key.wildcard_match(key):
+                        schema = schema_value
+                        break
+                else:
+                    raise SchemaError(f"Key '{key}' not in schema: {self}", context)
 
             key_context = key if context == "" else f"{context}.{key}"
             schema.validate(element, context=key_context)
 
-        for key, schema in self.items():
-            if schema.required is True and key not in value:
-                raise SchemaError(f"Missing required key: {key}", context)
+        for schema_key in self:
+            if schema_key.required and schema_key.name not in value:
+                raise SchemaError(f"Missing required key: {schema_key.name}", context)
 
 
 class Array(SchemaElement, list[SchemaElement]):
@@ -307,10 +364,9 @@ class Array(SchemaElement, list[SchemaElement]):
         schema_list: Sequence[SchemaElement],
         /,
         *,
-        required: bool = False,
         _address: str = "",
     ) -> None:
-        SchemaElement.__init__(self, required=required, _address=_address)
+        SchemaElement.__init__(self, _address=_address)
         list.__init__(self, schema_list)
 
         if len(self) == 0:
@@ -319,8 +375,6 @@ class Array(SchemaElement, list[SchemaElement]):
             raise SchemaError(
                 "'union' must be first element in array schema.", _address
             )
-        if any(isinstance(schema, Options) for schema in self):
-            raise SchemaError("'options' must be last element in array.", _address)
         if len(self) > 1:
             raise SchemaError(
                 "More than one element not allowed in array schema.", _address
@@ -328,8 +382,6 @@ class Array(SchemaElement, list[SchemaElement]):
 
     def __str__(self) -> str:
         schemas = [schema_value_to_str(schema) for schema in self]
-        if self.required:
-            schemas.append('"options = { required = true }"')
         return f"[ {', '.join(schemas)} ]"
 
     def __eq__(self, other: object) -> bool:
@@ -354,10 +406,9 @@ class UnionContainer(SchemaElement, list[SchemaElement]):
         schema_list: Sequence[SchemaElement],
         /,
         *,
-        required: bool = False,
         _address: str = "",
     ) -> None:
-        SchemaElement.__init__(self, required=required, _address=_address)
+        SchemaElement.__init__(self, _address=_address)
         list.__init__(self, schema_list)
 
         if any(sum(1 for elem_2 in self if elem_1 == elem_2) > 1 for elem_1 in self):
@@ -366,8 +417,6 @@ class UnionContainer(SchemaElement, list[SchemaElement]):
             raise SchemaError(
                 "'union' must only be first element in array schema.", _address
             )
-        if any(isinstance(schema, Options) for schema in self):
-            raise SchemaError("'options' must be last element in union.", _address)
         if len(self) < 2:
             raise SchemaError("Union should contain at least 2 type options.", _address)
         if any(isinstance(value, AnyValue) for value in self):
@@ -375,14 +424,10 @@ class UnionContainer(SchemaElement, list[SchemaElement]):
 
     def __str__(self) -> str:
         schemas = [schema_value_to_str(schema) for schema in self]
-        if self.required:
-            schemas.append('"options = { required = true }"')
         return f"""[ "union", {", ".join(schemas)} ]"""
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, UnionContainer):
-            return False
-        if not SchemaElement.__eq__(self, other):
             return False
         return all(element in other for element in self) and len(self) == len(other)
 
@@ -396,7 +441,34 @@ class UnionContainer(SchemaElement, list[SchemaElement]):
                 pass
             else:
                 return
-        raise SchemaError(f"Value {value} not in {self}.", context)
+        raise SchemaError(f"Value {value} not in: {self}", context)
+
+
+def _create_key(key: str, _address: str) -> SchemaKey:
+    if "=" not in key:
+        # Key is certainly not a TOML string.
+        return SchemaKey(name=key, _address=_address)
+
+    try:
+        key_toml: dict[str, TOMLValue] = tomllib.loads(key)
+    except tomllib.TOMLDecodeError as ex:
+        raise SchemaError(f"'{key}' is not a valid TOML: {ex}", _address) from None
+
+    KEY_SCHEMA.validate(key_toml, context=_address)
+
+    if len(key_toml) != 1:
+        key_str = key.replace("\n", "\\n")
+        raise SchemaError(f"'{key_str}' must have a single key.", _address)
+    # Get key name.
+    key_name = next(iter(key_toml))
+
+    # It is not possible to static check the call parameters typing.
+    # But the key schema validation guarantees the typing dynamically.
+    return SchemaKey(
+        name=key_name,
+        _address=_address,
+        **key_toml[key_name],  # type: ignore[arg-type]
+    )
 
 
 def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
@@ -452,21 +524,11 @@ def _create_schema(toml_value: TOMLValue, _address: str) -> SchemaElement:
             _create_schema(value, _address=f"{_address}[{index}]")
             for index, value in enumerate(toml_value)
         ]
-        for schema in schema_list:
-            if schema.required is True and not isinstance(schema, Options):
-                raise SchemaError(
-                    f"Required values not allowed in array: {schema}", _address
-                )
-
-        required = False
-        if len(schema_list) > 0 and isinstance(schema_list[-1], Options):
-            required = schema_list[-1].required
-            schema_list.pop(-1)
 
         if len(schema_list) > 0 and isinstance(schema_list[0], Union):
-            return UnionContainer(schema_list[1:], required=required, _address=_address)
+            return UnionContainer(schema_list[1:], _address=_address)
 
-        return Array(schema_list, required=required, _address=_address)
+        return Array(schema_list, _address=_address)
 
     if isinstance(toml_value, str):
         # Create schema basic type:
@@ -481,31 +543,38 @@ def from_toml_table(
     """Create a schema table from a TOML table."""
     base_address = "" if _address == "" else f"{_address}."
     schema_table = {
-        key: _create_schema(value, _address=f"{base_address}{key}")
+        _create_key(key, _address): _create_schema(
+            value, _address=f"{base_address}{key}"
+        )
         for key, value in toml_table.items()
     }
-    required = False
-    if "_" in schema_table and isinstance(schema_table["_"], Options):
-        required = schema_table["_"].required
-        del schema_table["_"]
-    return Table(schema_table, required=required, _address=_address)
+    return Table(schema_table, _address=_address)
 
 
 TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
-    "string": {"required": "boolean", "tokens": ["string"], "pattern": "string"},
-    "float": {"required": "boolean", "min": "float", "max": "float"},
-    "integer": {"required": "boolean", "min": "integer", "max": "integer"},
-    "boolean": {"required": "boolean"},
-    "offset-date-time": {"required": "boolean"},
-    "local-date-time": {"required": "boolean"},
-    "date": {"required": "boolean"},
-    "time": {"required": "boolean"},
-    "any-value": {"required": "boolean"},
-    "options": {"required": "boolean"},
+    "string": ["union", {"tokens": ["string"]}, {"pattern": "string"}],
+    "float": {"min": "float", "max": "float"},
+    "integer": {"min": "integer", "max": "integer"},
+    "boolean": {},
+    "offset-date-time": {},
+    "local-date-time": {},
+    "date": {},
+    "time": {},
+    "any-value": {},
     "union": {},
 }
 
 TYPES_SCHEMA = from_toml_table(TYPES_SCHEMA_TABLE)
+
+KEY_SCHEMA_TABLE: dict[str, TOMLValue] = {
+    "*": [
+        "union",
+        {"required": "boolean"},
+        {"pattern": "string"},
+    ]
+}
+
+KEY_SCHEMA = from_toml_table(KEY_SCHEMA_TABLE)
 
 
 def load(toml_file: BinaryIO, /) -> Table:

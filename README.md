@@ -118,29 +118,32 @@ complex_number = [
 ### Extra options for types
 
 It is also possible to specify extra options for each type.
-For example, to specify that a value is required to be present in the schema:
+For example, to specify that an integer value must be positive:
 ```
-dob = "offset-date-time = { required = true }"
+score = "integer = { min = 0 }"
 ```
 The string describing the type options should itself be a valid TOML.
 Here is the TOML schema defining all valid options:
 ```
-string = { required = "boolean", tokens = [ "string" ] }
-float = { required = "boolean", min = "float", max = "float" }
-integer = { required = "boolean", min = "integer", max = "integer" }
-boolean = { required = "boolean"}
-offset-date-time = { required = "boolean"}
-local-date-time = { required = "boolean"}
-date = { required = "boolean" }
-time = { required = "boolean" }
-any-value = { required = "boolean" }
-options = { required = "boolean" }
+string = [ "union", { tokens = [ "string" ] }, { pattern = "string" } ]
+float = { min = "float", max = "float" }
+integer = { min = "integer", max = "integer" }
+boolean = { }
+offset-date-time = { }
+local-date-time = { }
+date = { }
+time = { }
+any-value = { }
 ```
-All types can have the `required` keyword.
 
 Strings can be limited to a list of tokens. For example:
 ```
 pixel-color = "string = { tokens = ['Red', 'Green', 'Blue'] }"
+```
+
+Strings can also be specified with a regular expression pattern. For example, to specify that a string can only contain lower case characters:
+```
+name = "string = { pattern = '^a..z$' }"
 ```
 
 Integers and floats can have a limited range:
@@ -148,24 +151,24 @@ Integers and floats can have a limited range:
 discount-percent = "float = { min = 0.0, max = 100.0 }"
 ```
 
-The `options` keyword is used to define options for arrays, tables and unions.
-Here are examples of how it can be used:
-```
-# Every person must have a list of hobbies (but this list can be empty):
-[person.*]
-hobbies = [ "string", "options = { required = true }" ]
+### Extra options for keys
 
-# Owner must be specified:
-[owner]
-name = "string"
+It is also possible to specify options for the keys of a table. For example, to specify that the "owner" key is required in the root table and that the "name" key is required in the "owner" table, use:
+```
+["owner = { required = true }"]
+"name = { required = true }" = "string
 dob = "date"
-_ = "options = { required = true }"
-
-# some-number must be specified:
-some-number = [ "union", "float", "integer", "options = { required = true }" ]
 ```
-The `options` keyword must be the last element in an array or union.
-In tables, `options` must be the value of the `_` key.
+
+Key options can also be used to specify wildcard patterns for the keys. For example, to specify that any uppercase key in a table can be an integer, use:
+```
+"'*' = { pattern = '^[A..Z]+$' }" = "integer"
+```
+
+Any key with an "=" in it is assumed to be a key with options and is required to be a valid TOML. In the odd case where you actually want to have a key with an "=" in your schema you can specify it with a pattern:
+```
+"'*' = { pattern = '^hello=world$' }" = "string"
+```
 
 ### Usage:
 

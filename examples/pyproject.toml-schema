@@ -1,10 +1,10 @@
 [build-system]
-requires = [ "string", "options = { required = true }" ]
+"requires = { required = true }" = [ "string" ]
 build-backend = "string"
+backend-path = [ "string" ]
 
 [project]
-name = """[string]
-    required = true
+"name = { required = true }" = """[string]
     pattern = '^([a-zA-Z\\d]|[a-zA-Z\\d][\\w.-]*[a-zA-Z\\d])$'
 """
 version = """[string]
@@ -12,8 +12,8 @@ version = """[string]
 """
 authors = [ [
     "union",
-    { name = "string = { required = true }", email = "string" },
-    { name = "string", email = "string = { required = true }" },
+    { "name = { required = true }" = "string", email = "string" },
+    { name = "string", "email = { required = true }" = "string" },
 ] ]
 classifiers = [ "string" ]
 dependencies = [ "string" ]
@@ -41,22 +41,22 @@ keywords = [ "string" ]
 license = [
     "union",
     "string",
-    { file = "string = { required = true }" },
-    { text = "string = { required = true }" },
+    { "file = { required = true }" = "string" },
+    { "text = { required = true }" = "string" },
 ]
 license-files = [ "string" ]
 maintainers = [ [
     "union",
-    { name = "string = { required = true }", email = "string" },
-    { name = "string", email = "string = { required = true }" },
+    { "name = { required = true }" = "string", email = "string" },
+    { name = "string", "email = { required = true }" = "string" },
 ] ]
-optional-dependencies = { "*" = [ "string" ] }
+optional-dependencies = { "'*' = { pattern = '^([a-z\\d]|[a-z\\d]([a-z\\d-](?!--))*[a-z\\d])$' }" = [ "string" ] }
 readme = [
     "union",
     "string",
-    { file = "string = { required = true }", content-type = "string" },
-    { text = "string = { required = true }", content-type = "string" },
-    { content-type = "string = { required = true }" },
+    { "file = { required = true }" = "string", content-type = "string" },
+    { "text = { required = true }" = "string", content-type = "string" },
+    { "content-type = { required = true }" = "string" },
 ]
 requires-python = "string"
 urls = { "*" = "string" }
@@ -67,14 +67,14 @@ urls = { "*" = "string" }
 [project.gui-scripts]
 "*" = "string"
 
-[project.entry-points."*"]
+[project.entry-points."'*' = { pattern = '^\\w+(\\.\\w+)*$' }"]
 "*" = "string"
 
 [dependency-groups]
-"*" = [ [
+"'*' = { pattern = '^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9])$' }" = [ [
     "union",
     "string",
-    { include-group = "string = { required = true }" },
+    { "include-group = { required = true }" = "string" },
 ] ]
 
 [tool."*"]
