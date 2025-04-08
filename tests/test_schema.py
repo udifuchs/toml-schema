@@ -29,10 +29,7 @@ def SchemaKey(  # noqa: N802
 
 def schema_table_to_str(schema_table: toml_schema.Table) -> str:
     """Format a schema table into a TOML parsable string."""
-    return "\n".join(
-        f"{key} = {private_toml_schema.schema_value_to_str(value)}"
-        for key, value in schema_table.items()
-    )
+    return "\n".join(f"{key} = {value}" for key, value in schema_table.items())
 
 
 def test_create_schema() -> None:
@@ -368,7 +365,7 @@ def test_doc_array_of_inline_tables() -> None:
     """
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         check(schema, toml)
-    assert str(exc_info.value) == "'points[1].z': Value true is not: integer"
+    assert str(exc_info.value) == "'points[1].z': Value true is not: \"integer\""
 
 
 def test_wildcard() -> None:
@@ -393,7 +390,7 @@ def test_wildcard() -> None:
     """
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         check(schema, toml)
-    assert str(exc_info.value) == "'apple': Value 3 is not: string"
+    assert str(exc_info.value) == "'apple': Value 3 is not: \"string\""
 
     # Allowing wildcards in root table does not mean that other tables in schema
     # can have any key:
@@ -614,21 +611,21 @@ def test_check_error() -> None:
     """
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         check(schema, toml)
-    assert str(exc_info.value) == "'apple': Value {'type': 'fruit'} is not: string"
+    assert str(exc_info.value) == "'apple': Value {'type': 'fruit'} is not: \"string\""
 
     toml = """
         apple = ["fruit"]
     """
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         check(schema, toml)
-    assert str(exc_info.value) == "'apple': Value ['fruit'] is not: string"
+    assert str(exc_info.value) == "'apple': Value ['fruit'] is not: \"string\""
 
     toml = """
         apple = true
     """
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         check(schema, toml)
-    assert str(exc_info.value) == "'apple': Value true is not: string"
+    assert str(exc_info.value) == "'apple': Value true is not: \"string\""
 
     schema = """
         apple = [ "string" ]
@@ -641,7 +638,7 @@ def test_check_error() -> None:
         toml_schema.from_toml_table({"*": "string"}).validate(
             {"apple": None}  # type: ignore[dict-item]
         )
-    assert str(exc_info.value) == "'apple': Value None is not: string"
+    assert str(exc_info.value) == "'apple': Value None is not: \"string\""
 
     schema = """
         "*" = "table"
@@ -715,7 +712,7 @@ def test_toml_key_schema() -> None:
     """Test the schema of the TOML key schema."""
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple = { required = 'yes' }": "string"})
-    assert str(exc_info.value) == "'apple.required': Value yes is not: boolean"
+    assert str(exc_info.value) == "'apple.required': Value yes is not: \"boolean\""
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple = { }\nbanana = { }": "string"})
@@ -765,7 +762,7 @@ def test_toml_string_type() -> None:
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"apple": 3})
-    assert str(exc_info.value) == "'apple': Value 3 is not: string"
+    assert str(exc_info.value) == "'apple': Value 3 is not: \"string\""
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple": "string = { max = 3 }"})
@@ -788,7 +785,7 @@ def test_toml_string_type() -> None:
         schema.validate({"color": True})
     assert (
         str(exc_info.value) == "'color': Value true is not: "
-        "string = { tokens = ['Red', 'Green', 'Blue'] }"
+        "\"string = { tokens = ['Red', 'Green', 'Blue'] }\""
     )
 
 
@@ -845,7 +842,7 @@ def test_toml_float_type() -> None:
         schema.validate({"price": 5})
     assert (
         str(exc_info.value)
-        == "'price': Value 5 is not: float = { min = 3.0, max = 7.0 }"
+        == "'price': Value 5 is not: \"float = { min = 3.0, max = 7.0 }\""
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -882,7 +879,7 @@ def test_toml_int_type() -> None:
         schema.validate({"price": True})
     assert (
         str(exc_info.value)
-        == "'price': Value true is not: integer = { min = 3, max = 7 }"
+        == "'price': Value true is not: \"integer = { min = 3, max = 7 }\""
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -904,11 +901,11 @@ def test_toml_bool_type() -> None:
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"alive": 3})
-    assert str(exc_info.value) == "'alive': Value 3 is not: boolean"
+    assert str(exc_info.value) == "'alive': Value 3 is not: \"boolean\""
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"alive": 0})
-    assert str(exc_info.value) == "'alive': Value 0 is not: boolean"
+    assert str(exc_info.value) == "'alive': Value 0 is not: \"boolean\""
 
 
 def test_toml_datetime_type() -> None:
@@ -925,7 +922,7 @@ def test_toml_datetime_type() -> None:
     toml_table = tomllib.loads("dob = 1979-05-27")
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate(toml_table)
-    assert str(exc_info.value) == "'dob': Value 1979-05-27 is not: offset-date-time"
+    assert str(exc_info.value) == "'dob': Value 1979-05-27 is not: \"offset-date-time\""
 
     toml_table = tomllib.loads("dob = 1979-05-27T07:32:00")
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -953,7 +950,7 @@ def test_toml_datetime_type() -> None:
     toml_table = tomllib.loads("dob = 1979-05-27")
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate(toml_table)
-    assert str(exc_info.value) == "'dob': Value 1979-05-27 is not: local-date-time"
+    assert str(exc_info.value) == "'dob': Value 1979-05-27 is not: \"local-date-time\""
 
 
 def test_toml_date_type() -> None:
@@ -968,7 +965,7 @@ def test_toml_date_type() -> None:
     toml_table = tomllib.loads("dob = 1979-05-27T07:32:00")
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate(toml_table)
-    assert str(exc_info.value) == "'dob': Value 1979-05-27 07:32:00 is not: date"
+    assert str(exc_info.value) == "'dob': Value 1979-05-27 07:32:00 is not: \"date\""
 
 
 def test_toml_time_type() -> None:
@@ -981,7 +978,7 @@ def test_toml_time_type() -> None:
     toml_table = tomllib.loads("alarm = 1979-05-27T07:32:00")
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate(toml_table)
-    assert str(exc_info.value) == "'alarm': Value 1979-05-27 07:32:00 is not: time"
+    assert str(exc_info.value) == "'alarm': Value 1979-05-27 07:32:00 is not: \"time\""
 
 
 def test_required_key() -> None:

@@ -65,13 +65,13 @@ class SchemaElement:
             and not field.name.startswith("_")
         ]
         if len(non_default) == 0:
-            return f"{_type_name(self.__class__)}"
+            return f'"{_type_name(self.__class__)}"'
 
         non_def_str = ", ".join(
             f"{field.name} = {_format_attr(cast(object, getattr(self, field.name)))}"
             for field in non_default
         )
-        return f"{_type_name(self.__class__)} = {{ {non_def_str} }}"
+        return f'"{_type_name(self.__class__)} = {{ {non_def_str} }}"'
 
     def validate(self, value: TOMLValue, /, *, context: str) -> None:
         """Validate value for this type."""
@@ -280,13 +280,6 @@ class Union(SchemaElement):
     """A marker for a union of TOML schema types."""
 
 
-def schema_value_to_str(value: SchemaElement) -> str:
-    """Non-container values in TOML schema are quoted strings."""
-    if isinstance(value, (Table, Array, UnionContainer)):
-        return str(value)
-    return f'"{value}"'
-
-
 class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
     """Table schema container."""
 
@@ -316,9 +309,7 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
             )
 
     def __str__(self) -> str:
-        values = [
-            f"{key} = {schema_value_to_str(value)}" for key, value in self.items()
-        ]
+        values = [f"{key} = {value}" for key, value in self.items()]
         return "{ }" if len(values) == 0 else f"{{ {', '.join(values)} }}"
 
     def __eq__(self, other: object) -> bool:
@@ -378,7 +369,7 @@ class Array(SchemaElement, list[SchemaElement]):
             )
 
     def __str__(self) -> str:
-        schemas = [schema_value_to_str(schema) for schema in self]
+        schemas = [str(schema) for schema in self]
         return f"[ {', '.join(schemas)} ]"
 
     def __eq__(self, other: object) -> bool:
@@ -420,7 +411,7 @@ class UnionContainer(SchemaElement, list[SchemaElement]):
             raise SchemaError("'any-value' cannot be part of a union schema.", _address)
 
     def __str__(self) -> str:
-        schemas = [schema_value_to_str(schema) for schema in self]
+        schemas = [str(schema) for schema in self]
         return f"""[ "union", {", ".join(schemas)} ]"""
 
     def __eq__(self, other: object) -> bool:
