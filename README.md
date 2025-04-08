@@ -144,7 +144,7 @@ pixel-color = "string = { tokens = ['Red', 'Green', 'Blue'] }"
 
 Strings can also be specified with a regular expression pattern. For example, to specify that a string can only contain lower case characters:
 ```
-name = "pattern = '^a..z$'"
+name = "pattern = '^[a-z]+$'"
 ```
 
 Integers and floats can have a limited range:
@@ -163,7 +163,7 @@ dob = "date"
 
 Key options can also be used to specify wildcard patterns for the keys. For example, to specify that any uppercase key in a table can be an integer, use:
 ```
-"'pattern = '^[A..Z]+$'" = "integer"
+"pattern = '^[A-Z]+$'" = "integer"
 ```
 
 Any key with an "=" in it is assumed to be a key with options and is required to be a valid TOML. In the odd case where you actually want to have a key with an "=" in your schema you can specify it with a pattern:
