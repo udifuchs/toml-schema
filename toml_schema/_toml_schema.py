@@ -155,18 +155,6 @@ class String(SchemaElement):
     """String schema type."""
 
     tokens: Optional[list[str]] = None
-    pattern: Optional[str] = None
-    _regex: Optional[re.Pattern[str]] = dataclasses.field(init=False, default=None)
-
-    def __post_init__(self) -> None:
-        if self.pattern is not None:
-            try:
-                regex: re.Pattern[str] = re.compile(self.pattern)
-            except re.error as ex:
-                raise SchemaError(
-                    f"String pattern '{self.pattern}': {ex}", self._address
-                ) from None
-            object.__setattr__(self, "_regex", regex)
 
     def validate(self, value: TOMLValue, /, *, context: str) -> None:
         """Validate value for string type."""
@@ -174,12 +162,38 @@ class String(SchemaElement):
             raise SchemaError(f"Value {_format_attr(value)} is not: {self}", context)
         if self.tokens is not None and value not in self.tokens:
             raise SchemaError(f"'{value}' not in {self.tokens}", context)
-        if self._regex is not None:
-            result = self._regex.match(value)
-            if result is None:
-                raise SchemaError(
-                    f"'{value}' does not match pattern: {self.pattern}", context
-                )
+
+
+def _pattern_required() -> str:
+    """Make sure that Pattern.pattern is always specified."""
+    raise ValueError("Field 'pattern' required.")  # pragma: no cover
+
+
+@dataclasses.dataclass(frozen=True)
+class Pattern(SchemaElement):
+    """Regular expression pattern for string schema type."""
+
+    pattern: str = dataclasses.field(default_factory=_pattern_required)
+    _regex: re.Pattern[str] = dataclasses.field(init=False)
+
+    def __post_init__(self) -> None:
+        try:
+            regex: re.Pattern[str] = re.compile(self.pattern)
+        except re.error as ex:
+            raise SchemaError(
+                f"String pattern '{self.pattern}': {ex}", self._address
+            ) from None
+        object.__setattr__(self, "_regex", regex)
+
+    def validate(self, value: TOMLValue, /, *, context: str) -> None:
+        """Validate value for pattern type."""
+        if type(value) is not str:
+            raise SchemaError(f"Value {_format_attr(value)} is not: {self}", context)
+        result = self._regex.match(value)
+        if result is None:
+            raise SchemaError(
+                f"'{value}' does not match pattern: {self.pattern}", context
+            )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -496,7 +510,12 @@ def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
             # But the types schema validation guarantees the typing dynamically.
             return type_class(
                 _address=_address,
-                **toml_type_toml[type_name],  # type: ignore[arg-type]
+                **(
+                    toml_type_toml  # For example: {"pattern": "^[a-z]*$"}
+                    if type_name == "pattern"
+                    else toml_type_toml[type_name]
+                    # For example: {"name": {"required": True}}
+                ),  # type: ignore[arg-type]
             )
 
     # The schema validation guarantees that this exception would never be reached:
@@ -544,7 +563,8 @@ def from_toml_table(
 
 
 TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
-    "string": ["union", {"tokens": ["string"]}, {"pattern": "string"}],
+    "string": {"tokens": ["string"]},
+    "pattern": "string",
     "float": {"min": "float", "max": "float"},
     "integer": {"min": "integer", "max": "integer"},
     "boolean": {},

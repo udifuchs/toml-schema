@@ -51,13 +51,13 @@ def test_create_schema() -> None:
     assert schema == manual_schema
 
     toml = {
-        "fruit": "string = { pattern = 'hello' } ",
+        "fruit": "pattern = 'hello'",
         "temperatures = { required = true }": ["float = {}"],
     }
     schema = toml_schema.from_toml_table(toml)
     manual_schema = toml_schema.Table(
         {
-            SchemaKey("fruit"): private_toml_schema.String(pattern="hello"),
+            SchemaKey("fruit"): private_toml_schema.Pattern(pattern="hello"),
             SchemaKey("temperatures", required=True): private_toml_schema.Array(
                 [private_toml_schema.Float()]
             ),
@@ -79,7 +79,8 @@ def test_create_schema() -> None:
 
     # Internal toml-schema schema for basic TOML types with parameters:
     types_schema_str = """\
-        string = [ "union", { tokens = [ "string" ] }, { pattern = "string" } ]
+        string = { tokens = [ "string" ] }
+        pattern = "string"
         float = { min = "float", max = "float" }
         integer = { min = "integer", max = "integer" }
         boolean = { }
@@ -674,9 +675,8 @@ def test_toml_type_schema() -> None:
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple": "string = { banana = true }"})
     assert (
-        str(exc_info.value) == "'apple': 'string = { banana = true }' "
-        "schema error: 'string': Value {'banana': True} not in: "
-        '[ "union", { tokens = [ "string" ] }, { pattern = "string" } ]'
+        str(exc_info.value) == "'apple': 'string = { banana = true }' schema error: "
+        "'string': Key 'banana' not in schema: { tokens = [ \"string\" ] }"
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -686,8 +686,7 @@ def test_toml_type_schema() -> None:
     assert (
         str(exc_info.value) == "'name': "
         "'string = { tokens = ['a', 'b', 'c'], pattern = 'banana' }' schema error: "
-        "'string': Value {'tokens': ['a', 'b', 'c'], 'pattern': 'banana'} not in: "
-        '[ "union", { tokens = [ "string" ] }, { pattern = "string" } ]'
+        "'string': Key 'pattern' not in schema: { tokens = [ \"string\" ] }"
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -695,7 +694,8 @@ def test_toml_type_schema() -> None:
     assert (
         str(exc_info.value)
         == "'apple': 'stringly = {}' schema error: root: Key 'stringly' not in schema: "
-        '{ string = [ "union", { tokens = [ "string" ] }, { pattern = "string" } ], '
+        '{ string = { tokens = [ "string" ] }, '
+        'pattern = "string", '
         'float = { min = "float", max = "float" }, '
         'integer = { min = "integer", max = "integer" }, '
         "boolean = { }, "
@@ -768,8 +768,7 @@ def test_toml_string_type() -> None:
         toml_schema.from_toml_table({"apple": "string = { max = 3 }"})
     assert (
         str(exc_info.value) == "'apple': 'string = { max = 3 }' schema error: "
-        "'string': Value {'max': 3} not in: "
-        '[ "union", { tokens = [ "string" ] }, { pattern = "string" } ]'
+        "'string': Key 'max' not in schema: { tokens = [ \"string\" ] }"
     )
 
     schema = toml_schema.from_toml_table(
@@ -791,19 +790,21 @@ def test_toml_string_type() -> None:
 
 def test_toml_string_pattern() -> None:
     """Test TOML string regular expression pattern matching."""
-    schema = toml_schema.from_toml_table({"name": "string = { pattern = '^[A-Z]+$' }"})
+    schema = toml_schema.from_toml_table({"name": "pattern = '^[A-Z]+$'"})
     schema.validate({"name": "HELLO"})
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"name": "WORLd"})
     assert str(exc_info.value) == "'name': 'WORLd' does not match pattern: ^[A-Z]+$"
 
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"name": 7})
+    assert (
+        str(exc_info.value)
+        == "'name': Value 7 is not: \"pattern = { pattern = ^[A-Z]+$ }\""
+    )
+
     schema = toml_schema.from_toml_table(
-        {
-            "name": """
-            [string]
-            pattern = '^([a-zA-Z\\d]|[a-zA-Z\\d][\\w.-]*[a-zA-Z\\d])$'
-            """
-        }
+        {"name": "pattern = '^([a-zA-Z\\d]|[a-zA-Z\\d][\\w.-]*[a-zA-Z\\d])$'"}
     )
     schema.validate({"name": "toml-schema"})
 
@@ -815,18 +816,17 @@ def test_toml_string_pattern() -> None:
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.from_toml_table(
-            {
-                "name": """
-                [string]
-                pattern = '^([a-zA-Z\\d]|[a-zA-Z\\d][\\w.-]*[a-zA-Z\\d]$'
-                """
-            }
-        )
+        toml_schema.from_toml_table({"name": "pattern = '^([a-z]*$'"})
     assert (
-        str(exc_info.value)
-        == r"'name': String pattern '^([a-zA-Z\d]|[a-zA-Z\d][\w.-]*[a-zA-Z\d]$': "
+        str(exc_info.value) == "'name': String pattern '^([a-z]*$': "
         "missing ), unterminated subpattern at position 1"
+    )
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        toml_schema.from_toml_table({"name": "pattern = true"})
+    assert (
+        str(exc_info.value) == "'name': 'pattern = true' schema error: 'pattern': "
+        'Value true is not: "string"'
     )
 
 
