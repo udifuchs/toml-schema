@@ -50,7 +50,7 @@ maintainers = [ [
     { "name = { required = true }" = "string", email = "string" },
     { name = "string", "email = { required = true }" = "string" },
 ] ]
-optional-dependencies = { "'*' = { pattern = '^([a-z\\d]|[a-z\\d]([a-z\\d-](?!--))*[a-z\\d])$' }" = [ "string" ] }
+
 readme = [
     "union",
     "string",
@@ -61,17 +61,20 @@ readme = [
 requires-python = "string"
 urls = { "*" = "string" }
 
+[project.optional-dependencies]
+"pattern = '^([a-z\\d]|[a-z\\d]([a-z\\d-](?!--))*[a-z\\d])$'" = [ "string" ]
+
 [project.scripts]
 "*" = "string"
 
 [project.gui-scripts]
 "*" = "string"
 
-[project.entry-points."'*' = { pattern = '^\\w+(\\.\\w+)*$' }"]
+[project.entry-points."pattern = '^\\w+(\\.\\w+)*$'"]
 "*" = "string"
 
 [dependency-groups]
-"'*' = { pattern = '^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9])$' }" = [ [
+"pattern = '^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9])$'" = [ [
     "union",
     "string",
     { "include-group = { required = true }" = "string" },

@@ -2,6 +2,7 @@
 
 import runpy
 import sys
+from typing import Optional
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -15,7 +16,7 @@ import toml_schema._toml_schema as private_toml_schema
 
 
 def SchemaKey(  # noqa: N802
-    name: str, *, required: bool = False
+    name: str, *, required: bool = False, pattern: Optional[str] = None
 ) -> private_toml_schema.SchemaKey:
     """Fake SchemaKey needed for python 3.9 compatibility.
 
@@ -23,7 +24,7 @@ def SchemaKey(  # noqa: N802
     Then this function could be replaced with the line:
     from toml_schema._toml_schema import SchemaKey
     """
-    return private_toml_schema.SchemaKey(name=name, required=required)
+    return private_toml_schema.SchemaKey(name=name, required=required, pattern=pattern)
 
 
 def schema_table_to_str(schema_table: toml_schema.Table) -> str:
@@ -454,8 +455,8 @@ def test_tables() -> None:
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple = { banana = 'string' }": "string"})
     assert (
-        str(exc_info.value) == "'apple': Value {'banana': 'string'} not in: "
-        """[ "union", { required = "boolean" }, { pattern = "string" } ]"""
+        str(exc_info.value) == "'apple': Key 'banana' not in schema: "
+        """{ required = "boolean" }"""
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -470,8 +471,8 @@ def test_tables() -> None:
             {"fruit": [{"apple = { banana = 'string' }": "string"}]}
         )
     assert (
-        str(exc_info.value) == "'fruit[0].apple': Value {'banana': 'string'} not in: "
-        """[ "union", { required = "boolean" }, { pattern = "string" } ]"""
+        str(exc_info.value) == "'fruit[0].apple': Key 'banana' not in schema: "
+        '{ required = "boolean" }'
     )
 
 
@@ -714,10 +715,7 @@ def test_toml_key_schema() -> None:
     """Test the schema of the TOML key schema."""
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple = { required = 'yes' }": "string"})
-    assert (
-        str(exc_info.value) == "'apple': Value {'required': 'yes'} not in: "
-        """[ "union", { required = "boolean" }, { pattern = "string" } ]"""
-    )
+    assert str(exc_info.value) == "'apple.required': Value yes is not: boolean"
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple = { }\nbanana = { }": "string"})
@@ -753,8 +751,7 @@ def test_toml_key_schema() -> None:
         """)
     assert (
         str(exc_info.value)
-        == "'apple': Value {'required': True, 'pattern': 'banana'} not in: "
-        """[ "union", { required = "boolean" }, { pattern = "string" } ]"""
+        == """'apple': Key 'pattern' not in schema: { required = "boolean" }"""
     )
 
 
@@ -1037,41 +1034,69 @@ def test_required_key() -> None:
 
     # Test quoted key that are also required:
     schema = toml_schema.loads("""'"fruit flies" = { required = true }' = 'string'""")
-    assert str(schema) == '{ "\\"fruit flies\\" = { required = true }" = "string" }'
+    assert str(schema) == r'{ "\"fruit flies\" = { required = true }" = "string" }'
     schema.validate({"fruit flies": "like an arrow"})
 
 
 def test_key_pattern() -> None:
     """Test use of wildcard key patterns."""
     with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads('''"hello = { pattern = 'world' }" = "boolean"''')
+        SchemaKey("name", pattern="***")
     assert (
-        str(exc_info.value) == """root: '"'hello' = { pattern = 'world' }"': """
-        "Only wildcard keys can have a pattern."
+        str(exc_info.value) == """root: '"pattern = '***'"': """
+        "Pattern key must be 'pattern'."
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads('''"'*' = { pattern = '(world' }" = "boolean"''')
+        toml_schema.loads('''"pattern = '(world'" = "boolean"''')
     assert (
         str(exc_info.value) == "root: Key pattern '(world': "
         "missing ), unterminated subpattern at position 0"
     )
 
+    # Make sure that a key named "pattern" is not confused with actual patterns:
+    schema = toml_schema.loads("""
+        pattern = "integer"
+        "pattern = '^[a-z]*$'" = "float"
+        "pattern = '^[A-Z]*$'" = "boolean"
+        "*" = "string"
+    """)
+    schema.validate(
+        {
+            "pattern": 3,
+            "qwerty": 3.14,
+            "QWERTY": True,
+            "Qwerty": "hello",
+        }
+    )
+
     # Patterns can be used to specify keys with "=" in them:
     schema = toml_schema.loads("""
-        "'*' = { pattern = '^hello=world$' }" = "boolean"
+        "pattern = '^hello=world$'" = "boolean"
     """)
     schema.validate({"hello=world": True})
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"hello world": True})
     assert (
         str(exc_info.value) == "root: Key 'hello world' not in schema: "
-        """{ "'*' = { pattern = '^hello=world$' }" = "boolean" }"""
+        """{ "pattern = '^hello=world$'" = "boolean" }"""
+    )
+
+    # Patterns can be used to specify the key "*":
+    schema = toml_schema.loads(r"""
+        "pattern = '^\\*$'" = "boolean"
+    """)
+    schema.validate({"*": True})
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"x": True})
+    assert (
+        str(exc_info.value) == "root: Key 'x' not in schema: "
+        r"""{ "pattern = '^\*$'" = "boolean" }"""
     )
 
     schema = toml_schema.loads(r"""
-        "'*' = { pattern = 'boolean:\\w' }" = "boolean"
-        "'*' = { pattern = 'string:\\w' }" = "string"
+        "pattern = 'boolean:\\w'" = "boolean"
+        "pattern = 'string:\\w'" = "string"
     """)
     schema.validate(
         {

@@ -78,6 +78,14 @@ class SchemaElement:
         raise NotImplementedError
 
 
+# TOML bare key chars copied from: cpython/Lib/tomllib/_parser.py
+# fmt: off
+BARE_KEY_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyz" "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "0123456789" "-_"
+)
+# fmt: on
+
+
 def _name_required() -> str:
     """Make sure that SchemaKey.name is always specified.
 
@@ -97,10 +105,18 @@ class SchemaKey(SchemaElement):
     _regex: Optional[re.Pattern[str]] = dataclasses.field(init=False, default=None)
 
     def __post_init__(self) -> None:
-        if self.pattern is not None:
-            if self.name != "*":
+        if self.name == "*":
+            object.__setattr__(self, "name", "pattern")
+            object.__setattr__(self, "pattern", "^.*$")
+            if self.required:
                 raise SchemaError(
-                    f"'{self}': Only wildcard keys can have a pattern.", self._address
+                    "Wildcard key '*' cannot be marked as required.", self._address
+                )
+
+        if self.pattern is not None:
+            if self.name != "pattern":
+                raise SchemaError(
+                    f"'{self}': Pattern key must be 'pattern'.", self._address
                 )
             try:
                 regex: re.Pattern[str] = re.compile(self.pattern)
@@ -110,31 +126,25 @@ class SchemaKey(SchemaElement):
                 ) from None
             object.__setattr__(self, "_regex", regex)
 
-        if self.name == "*" and self.required:
-            raise SchemaError(
-                "Wildcard key '*' cannot be marked as required.", self._address
-            )
-
     def __str__(self) -> str:
         if self.required:
-            key_str = self.toml_key_name().replace('"', '\\"')
+            key_str = self._toml_key_name().replace('"', '\\"')
             return f'"{key_str} = {{ required = {_format_attr(self.required)} }}"'
         if self.pattern is not None:
-            return f'''"{self.name!r} = {{ pattern = '{self.pattern}' }}"'''
-        return self.toml_key_name()
+            return f'''"pattern = '{self.pattern}'"'''
+        return self._toml_key_name()
 
     def wildcard_match(self, value: str) -> bool:
         """Check if value matches with wildcard key."""
-        if self.name != "*":
-            return False
         if self._regex is None:
-            return True
+            return False
         result = self._regex.match(value)
         return result is not None
 
-    def toml_key_name(self) -> str:
+    def _toml_key_name(self) -> str:
         """Quote TOML key when needed."""
-        if _is_bare_key(self.name):
+        if all(char in BARE_KEY_CHARS for char in self.name):
+            # self.name is a bare key.
             return self.name
         escape_quotes = self.name.replace('"', '\\"')
         return f'"{escape_quotes}"'
@@ -270,19 +280,6 @@ class Union(SchemaElement):
     """A marker for a union of TOML schema types."""
 
 
-# TOML bare key chars copied from: cpython/Lib/tomllib/_parser.py
-# fmt: off
-BARE_KEY_CHARS = frozenset(
-    "abcdefghijklmnopqrstuvwxyz" "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "0123456789" "-_"
-)
-# fmt: on
-
-
-def _is_bare_key(key: str) -> bool:
-    """Test if key is a valid TOML bare key."""
-    return all(char in BARE_KEY_CHARS for char in key)
-
-
 def schema_value_to_str(value: SchemaElement) -> str:
     """Non-container values in TOML schema are quoted strings."""
     if isinstance(value, (Table, Array, UnionContainer)):
@@ -336,7 +333,7 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
         for key, element in value.items():
             # Check if key is in schema:
             for schema_key, schema_value in self.items():
-                if key == schema_key.name:
+                if key == schema_key.name and schema_key.pattern is None:
                     schema = schema_value
                     break
             else:
@@ -467,12 +464,16 @@ def _create_key(key: str, _address: str) -> SchemaKey:
     return SchemaKey(
         name=key_name,
         _address=_address,
-        **key_toml[key_name],  # type: ignore[arg-type]
+        **(
+            key_toml  # For example: {"pattern": "^[a-z]*$"}
+            if key_name == "pattern"
+            else key_toml[key_name]  # For example: {"name": {"required": True}}
+        ),  # type: ignore[arg-type]
     )
 
 
 def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
-    if _is_bare_key(toml_type):
+    if "=" not in toml_type:  # toml_type is certainly not a TOML string.
         # Loops ONLY over direct subclasses of SchemaElement:
         for type_class in SchemaElement.__subclasses__():
             if _type_name(type_class) == toml_type and toml_type in TYPES_SCHEMA_TABLE:
@@ -567,11 +568,8 @@ TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
 TYPES_SCHEMA = from_toml_table(TYPES_SCHEMA_TABLE)
 
 KEY_SCHEMA_TABLE: dict[str, TOMLValue] = {
-    "*": [
-        "union",
-        {"required": "boolean"},
-        {"pattern": "string"},
-    ]
+    "pattern": "string",
+    "*": {"required": "boolean"},
 }
 
 KEY_SCHEMA = from_toml_table(KEY_SCHEMA_TABLE)
