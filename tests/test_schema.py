@@ -79,7 +79,8 @@ def test_create_schema() -> None:
 
     # Internal toml-schema schema for basic TOML types with parameters:
     types_schema_str = """\
-        string = { tokens = [ "string" ] }
+        string = { }
+        enum = [ "string" ]
         pattern = "string"
         float = { min = "float", max = "float" }
         integer = { min = "integer", max = "integer" }
@@ -676,17 +677,7 @@ def test_toml_type_schema() -> None:
         toml_schema.from_toml_table({"apple": "string = { banana = true }"})
     assert (
         str(exc_info.value) == "'apple': 'string = { banana = true }' schema error: "
-        "'string': Key 'banana' not in schema: { tokens = [ \"string\" ] }"
-    )
-
-    with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads("""
-            name = "string = { tokens = ['a', 'b', 'c'], pattern = 'banana' }"
-        """)
-    assert (
-        str(exc_info.value) == "'name': "
-        "'string = { tokens = ['a', 'b', 'c'], pattern = 'banana' }' schema error: "
-        "'string': Key 'pattern' not in schema: { tokens = [ \"string\" ] }"
+        "'string': Key 'banana' not in schema: { }"
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -694,7 +685,8 @@ def test_toml_type_schema() -> None:
     assert (
         str(exc_info.value)
         == "'apple': 'stringly = {}' schema error: root: Key 'stringly' not in schema: "
-        '{ string = { tokens = [ "string" ] }, '
+        "{ string = { }, "
+        'enum = [ "string" ], '
         'pattern = "string", '
         'float = { min = "float", max = "float" }, '
         'integer = { min = "integer", max = "integer" }, '
@@ -768,12 +760,13 @@ def test_toml_string_type() -> None:
         toml_schema.from_toml_table({"apple": "string = { max = 3 }"})
     assert (
         str(exc_info.value) == "'apple': 'string = { max = 3 }' schema error: "
-        "'string': Key 'max' not in schema: { tokens = [ \"string\" ] }"
+        "'string': Key 'max' not in schema: { }"
     )
 
-    schema = toml_schema.from_toml_table(
-        {"color": "string = { tokens = [ 'Red', 'Green', 'Blue' ] }"}
-    )
+
+def test_toml_enum_type() -> None:
+    """Test TOML enumerated string type."""
+    schema = toml_schema.from_toml_table({"color": "enum = [ 'Red', 'Green', 'Blue' ]"})
     schema.validate({"color": "Blue"})
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -782,10 +775,18 @@ def test_toml_string_type() -> None:
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"color": True})
+    assert str(exc_info.value) == "'color': Value true is not a string."
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        toml_schema.from_toml_table({"color": "enum = [ 'Red', 'Blue', 'Blue' ]"})
     assert (
-        str(exc_info.value) == "'color': Value true is not: "
-        "\"string = { tokens = ['Red', 'Green', 'Blue'] }\""
+        str(exc_info.value) == "'color': 'enum' must not have duplicates: "
+        "['Red', 'Blue', 'Blue']"
     )
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        toml_schema.from_toml_table({"color": "enum"})
+    assert str(exc_info.value) == "'color': 'enum' is not a valid keyword type."
 
 
 def test_toml_string_pattern() -> None:
@@ -798,10 +799,7 @@ def test_toml_string_pattern() -> None:
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"name": 7})
-    assert (
-        str(exc_info.value)
-        == "'name': Value 7 is not: \"pattern = { pattern = ^[A-Z]+$ }\""
-    )
+    assert str(exc_info.value) == "'name': Value 7 is not a string."
 
     schema = toml_schema.from_toml_table(
         {"name": "pattern = '^([a-zA-Z\\d]|[a-zA-Z\\d][\\w.-]*[a-zA-Z\\d])$'"}
@@ -828,6 +826,10 @@ def test_toml_string_pattern() -> None:
         str(exc_info.value) == "'name': 'pattern = true' schema error: 'pattern': "
         'Value true is not: "string"'
     )
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        toml_schema.from_toml_table({"name": "pattern"})
+    assert str(exc_info.value) == "'name': 'pattern' is not a valid keyword type."
 
 
 def test_toml_float_type() -> None:

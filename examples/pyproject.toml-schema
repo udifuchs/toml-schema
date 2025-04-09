@@ -18,25 +18,24 @@ authors = [ [
 classifiers = [ "string" ]
 dependencies = [ "string" ]
 description = "string"
-dynamic = [ """[string]
-    tokens = [
-        "version",
-        "description",
-        "readme",
-        "requires-python",
-        "license",
-        "license-files",
-        "authors",
-        "maintainers",
-        "keywords",
-        "classifiers",
-        "urls",
-        "scripts",
-        "gui-scripts",
-        "entry-points",
-        "dependencies",
-        "optional-dependencies",
-    ]""" ]
+dynamic = [ """enum = [
+    "version",
+    "description",
+    "readme",
+    "requires-python",
+    "license",
+    "license-files",
+    "authors",
+    "maintainers",
+    "keywords",
+    "classifiers",
+    "urls",
+    "scripts",
+    "gui-scripts",
+    "entry-points",
+    "dependencies",
+    "optional-dependencies",
+]""" ]
 keywords = [ "string" ]
 license = [
     "union",

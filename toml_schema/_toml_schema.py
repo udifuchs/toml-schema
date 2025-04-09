@@ -154,14 +154,38 @@ class SchemaKey(SchemaElement):
 class String(SchemaElement):
     """String schema type."""
 
-    tokens: Optional[list[str]] = None
-
     def validate(self, value: TOMLValue, /, *, context: str) -> None:
         """Validate value for string type."""
         if type(value) is not str:
             raise SchemaError(f"Value {_format_attr(value)} is not: {self}", context)
-        if self.tokens is not None and value not in self.tokens:
-            raise SchemaError(f"'{value}' not in {self.tokens}", context)
+
+
+def _enum_required() -> list[str]:
+    """Make sure that Pattern.pattern is always specified."""
+    raise ValueError("Field 'enum' required.")  # pragma: no cover
+
+
+@dataclasses.dataclass(frozen=True)
+class Enum(SchemaElement):
+    """Enumerated string schema type."""
+
+    enum: list[str] = dataclasses.field(default_factory=_enum_required)
+
+    def __post_init__(self) -> None:
+        if any(
+            sum(1 for elem_2 in self.enum if elem_1 == elem_2) > 1
+            for elem_1 in self.enum
+        ):
+            raise SchemaError(
+                f"'enum' must not have duplicates: {self.enum}", self._address
+            )
+
+    def validate(self, value: TOMLValue, /, *, context: str) -> None:
+        """Validate value for string type."""
+        if type(value) is not str:
+            raise SchemaError(f"Value {_format_attr(value)} is not a string.", context)
+        if value not in self.enum:
+            raise SchemaError(f"'{value}' not in {self.enum}", context)
 
 
 def _pattern_required() -> str:
@@ -188,7 +212,7 @@ class Pattern(SchemaElement):
     def validate(self, value: TOMLValue, /, *, context: str) -> None:
         """Validate value for pattern type."""
         if type(value) is not str:
-            raise SchemaError(f"Value {_format_attr(value)} is not: {self}", context)
+            raise SchemaError(f"Value {_format_attr(value)} is not a string.", context)
         result = self._regex.match(value)
         if result is None:
             raise SchemaError(
@@ -481,7 +505,11 @@ def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
     if "=" not in toml_type:  # toml_type is certainly not a TOML string.
         # Loops ONLY over direct subclasses of SchemaElement:
         for type_class in SchemaElement.__subclasses__():
-            if _type_name(type_class) == toml_type and toml_type in TYPES_SCHEMA_TABLE:
+            if (
+                _type_name(type_class) == toml_type
+                and toml_type in TYPES_SCHEMA_TABLE
+                and isinstance(TYPES_SCHEMA_TABLE[toml_type], dict)
+            ):
                 return type_class(_address=_address)  # optionless types like "string".
         raise SchemaError(f"'{toml_type}' is not a valid keyword type.", _address)
 
@@ -511,10 +539,10 @@ def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
             return type_class(
                 _address=_address,
                 **(
-                    toml_type_toml  # For example: {"pattern": "^[a-z]*$"}
-                    if type_name == "pattern"
-                    else toml_type_toml[type_name]
+                    toml_type_toml[type_name]
                     # For example: {"name": {"required": True}}
+                    if isinstance(toml_type_toml[type_name], dict)
+                    else toml_type_toml  # For example: {"pattern": "^[a-z]*$"}
                 ),  # type: ignore[arg-type]
             )
 
@@ -563,7 +591,8 @@ def from_toml_table(
 
 
 TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
-    "string": {"tokens": ["string"]},
+    "string": {},
+    "enum": ["string"],
     "pattern": "string",
     "float": {"min": "float", "max": "float"},
     "integer": {"min": "integer", "max": "integer"},

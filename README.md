@@ -125,7 +125,8 @@ score = "integer = { min = 0 }"
 The string describing the type options should itself be a valid TOML.
 Here is the TOML schema defining all valid options:
 ```
-string = { tokens = [ "string" ] }
+string = { }
+enum = [ "string" ]
 pattern = "string"
 float = { min = "float", max = "float" }
 integer = { min = "integer", max = "integer" }
@@ -137,9 +138,9 @@ time = { }
 any-value = { }
 ```
 
-Strings can be limited to a list of tokens. For example:
+Strings can be limited to a list of enumated values. For example:
 ```
-pixel-color = "string = { tokens = ['Red', 'Green', 'Blue'] }"
+pixel-color = "enum = ['Red', 'Green', 'Blue']"
 ```
 
 Strings can also be specified with a regular expression pattern. For example, to specify that a string can only contain lower case characters:
