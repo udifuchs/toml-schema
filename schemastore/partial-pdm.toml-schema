@@ -1,0 +1,148 @@
+distribution = "boolean"
+ignore_package_warnings = [ "string" ]
+plugins = [ "string" ]
+source = [ "ref = 'defs.package-source'" ]
+dockerize = "file = 'partial-pdm-dockerize.toml-schema'"
+
+[dev-dependencies]
+dev = "ref = 'defs.dev-dependency-group'"
+"*" = "ref = 'defs.dev-dependency-group'"
+
+[resolution]
+allow-prereleases = "boolean"
+excludes = [ "string" ]
+respect-source-order = "boolean"
+
+[resolution.overrides]
+"*" = "string"
+
+[options]
+add = "ref = 'defs.command-options'"
+build = "ref = 'defs.command-options'"
+cache = "ref = 'defs.command-options'"
+completion = "ref = 'defs.command-options'"
+config = "ref = 'defs.command-options'"
+export = "ref = 'defs.command-options'"
+fix = "ref = 'defs.command-options'"
+import = "ref = 'defs.command-options'"
+info = "ref = 'defs.command-options'"
+init = "ref = 'defs.command-options'"
+install = "ref = 'defs.command-options'"
+list = "ref = 'defs.command-options'"
+lock = "ref = 'defs.command-options'"
+publish = "ref = 'defs.command-options'"
+remove = "ref = 'defs.command-options'"
+run = "ref = 'defs.command-options'"
+search = "ref = 'defs.command-options'"
+self = "ref = 'defs.command-options'"
+show = "ref = 'defs.command-options'"
+sync = "ref = 'defs.command-options'"
+update = "ref = 'defs.command-options'"
+use = "ref = 'defs.command-options'"
+venv = "ref = 'defs.command-options'"
+"*" = "ref = 'defs.command-options'"
+
+[scripts]
+post_init = "ref = 'defs.pdm-script'"
+pre_install = "ref = 'defs.pdm-script'"
+post_install = "ref = 'defs.pdm-script'"
+pre_lock = "ref = 'defs.pdm-script'"
+post_lock = "ref = 'defs.pdm-script'"
+pre_build = "ref = 'defs.pdm-script'"
+post_build = "ref = 'defs.pdm-script'"
+pre_publish = "ref = 'defs.pdm-script'"
+post_publish = "ref = 'defs.pdm-script'"
+pre_script = "ref = 'defs.pdm-script'"
+post_script = "ref = 'defs.pdm-script'"
+pre_run = "ref = 'defs.pdm-script'"
+post_run = "ref = 'defs.pdm-script'"
+"*" = "ref = 'defs.pdm-script'"
+
+[scripts._]
+env = "ref = 'defs.env-vars'"
+env_file = "ref = 'defs.env-file'"
+
+[version]
+"source = { required = true }" = """enum = [
+    "file",
+    "scm",
+    "call",
+]"""
+path = "string"
+fallback_version = "string"
+tag_filter = "string"
+tag_regex = "string"
+version_format = """
+    pattern = '([\\w.]+):([\\w.]+)\\s*(\\([^)]+\\))?'
+"""
+getter = "string"
+write_to = "string"
+write_template = "string"
+
+[build]
+includes = [ "string" ]
+excludes = [ "string" ]
+source-includes = [ "string" ]
+package-dir = "string"
+custom-hook = "string"
+run-setuptools = "boolean"
+is-purelib = "boolean"
+editable-backend = """enum = [
+    "path",
+    "editables",
+]"""
+
+[build.wheel-data]
+scripts = "ref = 'defs.wheel-data-array'"
+purelib = "ref = 'defs.wheel-data-array'"
+platlib = "ref = 'defs.wheel-data-array'"
+include = "ref = 'defs.wheel-data-array'"
+platinclude = "ref = 'defs.wheel-data-array'"
+data = "ref = 'defs.wheel-data-array'"
+
+["defs = { hidden = true }"]
+wheel-data-array = [ [
+    "union",
+    { "path = { required = true }" = "string", relative-to = "string" },
+    "string",
+] ]
+env-file = [
+    "union",
+    { override = "string" },
+    "string",
+]
+script-help = "string"
+pdm-script = [
+    "union",
+    [
+    "union",
+    { "call = { required = true }" = "string", env = "ref = 'defs.env-vars'", env_file = "ref = 'defs.env-file'", help = "ref = 'defs.script-help'" },
+    { "cmd = { required = true }" = [
+    "union",
+    "string",
+    [ "string" ],
+], env = "ref = 'defs.env-vars'", env_file = "ref = 'defs.env-file'", help = "ref = 'defs.script-help'" },
+    { "shell = { required = true }" = "string", env = "ref = 'defs.env-vars'", env_file = "ref = 'defs.env-file'", help = "ref = 'defs.script-help'" },
+    { "composite = { required = true }" = [ "string" ], env = "ref = 'defs.env-vars'", env_file = "ref = 'defs.env-file'", help = "ref = 'defs.script-help'", keep_going = "boolean" },
+],
+    "string",
+]
+command-options = [ "string" ]
+dev-dependency = "string"
+dev-dependency-group = [ "ref = 'defs.dev-dependency'" ]
+
+["defs = { hidden = true }".env-vars]
+"*" = "string"
+
+["defs = { hidden = true }".package-source]
+"name = { required = true }" = "string"
+"url = { required = true }" = "string"
+verify_ssl = "boolean"
+username = "string"
+password = "string"
+type = """enum = [
+    "index",
+    "find_links",
+]"""
+exclude_packages = [ "string" ]
+include_packages = [ "string" ]

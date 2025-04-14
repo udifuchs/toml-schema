@@ -1,0 +1,107 @@
+all-features = "boolean"
+auditwheel = "ref = 'defs.AuditWheelMode'"
+bindings = "string"
+compatibility = "ref = 'defs.PlatformTag'"
+config = [ "string" ]
+data = "string"
+exclude = [ "ref = 'defs.GlobPattern'" ]
+features = [ "string" ]
+frozen = "boolean"
+include = [ "ref = 'defs.GlobPattern'" ]
+locked = "boolean"
+manifest-path = "string"
+module-name = "string"
+no-default-features = "boolean"
+profile = "string"
+python-packages = [ "string" ]
+python-source = "string"
+rustc-args = [ "string" ]
+sdist-generator = "ref = 'defs.SdistGenerator'"
+skip-auditwheel = "boolean"
+strip = "boolean"
+targets = [ "ref = 'defs.CargoTarget'" ]
+unstable-flags = [ "string" ]
+"*" = "any-value"
+
+[target]
+"*" = "ref = 'defs.TargetConfig'"
+
+["defs = { hidden = true }"]
+AuditWheelMode = [
+    "union",
+    """enum = [
+    "repair",
+]""",
+    """enum = [
+    "check",
+]""",
+    """enum = [
+    "skip",
+]""",
+]
+CargoCrateType = [
+    "union",
+    """enum = [
+    "bin",
+]""",
+    """enum = [
+    "cdylib",
+]""",
+    """enum = [
+    "dylib",
+]""",
+    """enum = [
+    "lib",
+]""",
+    """enum = [
+    "rlib",
+]""",
+    """enum = [
+    "staticlib",
+]""",
+]
+Format = [
+    "union",
+    """enum = [
+    "sdist",
+]""",
+    """enum = [
+    "wheel",
+]""",
+]
+Formats = [
+    "union",
+    "ref = 'defs.Format'",
+    [ "ref = 'defs.Format'" ],
+]
+GlobPattern = [
+    "union",
+    "string",
+    { "format = { required = true }" = "ref = 'defs.Formats'", "path = { required = true }" = "string", "*" = "any-value" },
+]
+PlatformTag = [
+    "union",
+    { "Manylinux = { required = true }" = { "x = { required = true }" = "integer = { min = 0, max = 65535 }", "y = { required = true }" = "integer = { min = 0, max = 65535 }", "*" = "any-value" } },
+    { "Musllinux = { required = true }" = { "x = { required = true }" = "integer = { min = 0, max = 65535 }", "y = { required = true }" = "integer = { min = 0, max = 65535 }", "*" = "any-value" } },
+    """enum = [
+    "Linux",
+]""",
+]
+SdistGenerator = [
+    "union",
+    """enum = [
+    "cargo",
+]""",
+    """enum = [
+    "git",
+]""",
+]
+
+["defs = { hidden = true }".CargoTarget]
+kind = "ref = 'defs.CargoCrateType'"
+"name = { required = true }" = "string"
+"*" = "any-value"
+
+["defs = { hidden = true }".TargetConfig]
+macos-deployment-target = "string"
+"*" = "any-value"

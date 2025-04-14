@@ -1,0 +1,148 @@
+mypy_path = [
+    "union",
+    "string",
+    [ "string" ],
+]
+files = [
+    "union",
+    "string",
+    [ "string" ],
+]
+modules = [
+    "union",
+    "string",
+    [ "string" ],
+]
+packages = [
+    "union",
+    "string",
+    [ "string" ],
+]
+exclude = [
+    "union",
+    "string",
+    [ "string" ],
+]
+namespace_packages = "boolean"
+explicit_package_bases = "boolean"
+ignore_missing_imports = "boolean"
+follow_untyped_imports = "boolean"
+follow_imports = """enum = [
+    "normal",
+    "silent",
+    "skip",
+    "error",
+]"""
+follow_imports_for_stubs = "boolean"
+python_executable = "string"
+no_site_packages = "boolean"
+no_silence_site_packages = "boolean"
+python_version = "string"
+platform = "string"
+always_true = [
+    "union",
+    "string",
+    [ "string" ],
+]
+always_false = [
+    "union",
+    "string",
+    [ "string" ],
+]
+disallow_any_unimported = "boolean"
+disallow_any_expr = "boolean"
+disallow_any_decorated = "boolean"
+disallow_any_explicit = "boolean"
+disallow_any_generics = "boolean"
+disallow_subclassing_any = "boolean"
+disallow_untyped_calls = "boolean"
+untyped_calls_exclude = [
+    "union",
+    "string",
+    [ "string" ],
+]
+disallow_untyped_defs = "boolean"
+disallow_incomplete_defs = "boolean"
+check_untyped_defs = "boolean"
+disallow_untyped_decorators = "boolean"
+implicit_optional = "boolean"
+no_implicit_optional = "boolean"
+no_implicit_reexport = "boolean"
+strict_bytes = "boolean"
+strict_optional = "boolean"
+warn_redundant_casts = "boolean"
+warn_unused_ignores = "boolean"
+warn_no_return = "boolean"
+warn_return_any = "boolean"
+warn_unreachable = "boolean"
+ignore_errors = "boolean"
+allow_untyped_globals = "boolean"
+allow_redefinition = "boolean"
+local_partial_types = "boolean"
+disable_error_code = [
+    "union",
+    "string",
+    [ "string" ],
+]
+enable_error_code = [
+    "union",
+    "string",
+    [ "string" ],
+]
+implicit_reexport = "boolean"
+strict_concatenate = "boolean"
+extra_checks = "boolean"
+strict_equality = "boolean"
+strict = "boolean"
+show_error_context = "boolean"
+show_column_numbers = "boolean"
+hide_error_codes = "boolean"
+pretty = "boolean"
+color_output = "boolean"
+error_summary = "boolean"
+show_absolute_path = "boolean"
+force_uppercase_builtins = "boolean"
+force_union_syntax = "boolean"
+incremental = "boolean"
+cache_dir = "string"
+sqlite_cache = "boolean"
+cache_fine_grained = "boolean"
+skip_version_check = "boolean"
+skip_cache_mtime_checks = "boolean"
+plugins = [
+    "union",
+    "string",
+    [ "string" ],
+]
+pdb = "boolean"
+show_traceback = "boolean"
+raise_exceptions = "boolean"
+custom_typing_module = "string"
+custom_typeshed_dir = "string"
+warn_incomplete_stub = "boolean"
+any_exprs_report = "string"
+cobertura_xml_report = "string"
+linecount_report = "string"
+linecoverage_report = "string"
+lineprecision_report = "string"
+xml_report = "string"
+junit_xml = "string"
+scripts_are_modules = "boolean"
+warn_unused_configs = "boolean"
+verbosity = "integer"
+show_error_codes = "boolean"
+show_error_code_links = "boolean"
+disable_bytearray_promotion = "boolean"
+disable_memoryview_promotion = "boolean"
+enable_incomplete_feature = [
+    "union",
+    "string",
+    [ "string" ],
+]
+overrides = [ { "module = { required = true }" = [
+    "union",
+    "string",
+    [ "string" ],
+], ignore_missing_imports = "ref = 'ignore_missing_imports'", follow_untyped_imports = "ref = 'follow_untyped_imports'", follow_imports = "ref = 'follow_imports'", follow_imports_for_stubs = "ref = 'follow_imports_for_stubs'", no_site_packages = "ref = 'no_site_packages'", always_true = "ref = 'always_true'", always_false = "ref = 'always_false'", disallow_any_unimported = "ref = 'disallow_any_unimported'", disallow_any_expr = "ref = 'disallow_any_expr'", disallow_any_decorated = "ref = 'disallow_any_decorated'", disallow_any_explicit = "ref = 'disallow_any_explicit'", disallow_any_generics = "ref = 'disallow_any_generics'", disallow_subclassing_any = "ref = 'disallow_subclassing_any'", disallow_untyped_calls = "ref = 'disallow_untyped_calls'", untyped_calls_exclude = "ref = 'untyped_calls_exclude'", disallow_untyped_defs = "ref = 'disallow_untyped_defs'", disallow_incomplete_defs = "ref = 'disallow_incomplete_defs'", check_untyped_defs = "ref = 'check_untyped_defs'", disallow_untyped_decorators = "ref = 'disallow_untyped_decorators'", implicit_optional = "ref = 'implicit_optional'", no_implicit_optional = "ref = 'no_implicit_optional'", no_implicit_reexport = "ref = 'no_implicit_reexport'", strict_optional = "ref = 'strict_optional'", warn_unused_ignores = "ref = 'warn_unused_ignores'", warn_no_return = "ref = 'warn_no_return'", warn_return_any = "ref = 'warn_return_any'", warn_unreachable = "ref = 'warn_unreachable'", ignore_errors = "ref = 'ignore_errors'", allow_untyped_globals = "ref = 'allow_untyped_globals'", allow_redefinition = "ref = 'allow_redefinition'", local_partial_types = "ref = 'local_partial_types'", disable_error_code = "ref = 'disable_error_code'", enable_error_code = "ref = 'enable_error_code'", extra_checks = "ref = 'extra_checks'", implicit_reexport = "ref = 'implicit_reexport'", strict_concatenate = "ref = 'strict_concatenate'", strict_equality = "ref = 'strict_equality'", strict_bytes = "ref = 'strict_bytes'", strict = "ref = 'strict'", show_error_context = "ref = 'show_error_context'", show_column_numbers = "ref = 'show_column_numbers'", show_error_code_links = "ref = 'show_error_code_links'", hide_error_codes = "ref = 'hide_error_codes'", pretty = "ref = 'pretty'", color_output = "ref = 'color_output'", error_summary = "ref = 'error_summary'", show_absolute_path = "ref = 'show_absolute_path'", force_uppercase_builtins = "ref = 'force_uppercase_builtins'", force_union_syntax = "ref = 'force_union_syntax'", incremental = "ref = 'incremental'", cache_dir = "ref = 'cache_dir'", sqlite_cache = "ref = 'sqlite_cache'", cache_fine_grained = "ref = 'cache_fine_grained'", skip_version_check = "ref = 'skip_version_check'", skip_cache_mtime_checks = "ref = 'skip_cache_mtime_checks'", plugins = "ref = 'plugins'", pdb = "ref = 'pdb'", show_traceback = "ref = 'show_traceback'", raise_exceptions = "ref = 'raise_exceptions'", custom_typing_module = "ref = 'custom_typing_module'", custom_typeshed_dir = "ref = 'custom_typeshed_dir'", warn_incomplete_stub = "ref = 'warn_incomplete_stub'", any_exprs_report = "ref = 'any_exprs_report'", cobertura_xml_report = "ref = 'cobertura_xml_report'", linecount_report = "ref = 'linecount_report'", linecoverage_report = "ref = 'linecoverage_report'", lineprecision_report = "ref = 'lineprecision_report'", xml_report = "ref = 'xml_report'", junit_xml = "ref = 'junit_xml'", scripts_are_modules = "ref = 'scripts_are_modules'", warn_unused_configs = "ref = 'warn_unused_configs'", verbosity = "ref = 'verbosity'" } ]
+install_types = "boolean"
+non_interactive = "boolean"

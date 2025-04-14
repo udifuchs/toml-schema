@@ -1,0 +1,137 @@
+metadata = "ref = 'defs.Metadata'"
+env = "ref = 'defs.CollectorEnv'"
+envs = "ref = 'defs.Envs'"
+build = "ref = 'defs.Build'"
+version = "ref = 'defs.Version'"
+publish = "ref = 'defs.Publish'"
+
+["defs = { hidden = true }"]
+Platform = """enum = [
+    "linux",
+    "windows",
+    "macos",
+]"""
+Override = { }
+
+["defs = { hidden = true }".Format]
+config-path = "string"
+"*" = "any-value"
+
+["defs = { hidden = true }".Metadata]
+allow-direct-references = "boolean"
+allow-ambiguous-features = "boolean"
+"*" = "any-value"
+
+["defs = { hidden = true }".Overrides]
+"*" = "any-value"
+
+["defs = { hidden = true }".Overrides.platform]
+"*" = "ref = 'defs.Override'"
+
+["defs = { hidden = true }".Overrides."pattern = 'env|matrix|name'"]
+"*" = "ref = 'defs.Override'"
+
+["defs = { hidden = true }".Env]
+template = "string"
+detached = "boolean"
+dependencies = [ "string" ]
+extra-dependencies = [ "string" ]
+features = [ "string" ]
+dev-mode = "boolean"
+skip-install = "boolean"
+env-include = [ "string" ]
+env-exclude = [ "string" ]
+pre-install-commands = [ "string" ]
+post-install-commands = [ "string" ]
+python = "string"
+platforms = [ "ref = 'defs.Platform'" ]
+description = "string"
+type = "string"
+matrix = [ { "*" = [ "string" ] } ]
+matrix-name-format = "string"
+overrides = "ref = 'defs.Overrides'"
+requires = [ "string" ]
+"*" = "any-value"
+
+["defs = { hidden = true }".Env.env-vars]
+"*" = "string"
+
+["defs = { hidden = true }".Env.scripts]
+"*" = [
+    "union",
+    "string",
+    [ "string" ],
+]
+
+["defs = { hidden = true }".Envs]
+"*" = "ref = 'defs.Env'"
+
+["defs = { hidden = true }".CollectorEnv]
+requires = [ "string" ]
+"*" = "any-value"
+
+["defs = { hidden = true }".CollectorEnv.collectors]
+
+["defs = { hidden = true }".CollectorEnv.collectors."*"]
+"*" = "any-value"
+
+["defs = { hidden = true }".Target]
+dependencies = [ "string" ]
+require-runtime-dependencies = "boolean"
+require-runtime-features = [ "string" ]
+versions = [ "string" ]
+"*" = "any-value"
+
+["defs = { hidden = true }".CustomTargets]
+"*" = "ref = 'defs.Target'"
+
+["defs = { hidden = true }".Hook]
+dependencies = [ "string" ]
+require-runtime-dependencies = "boolean"
+require-runtime-features = [ "string" ]
+enable-by-default = "boolean"
+"*" = "any-value"
+
+["defs = { hidden = true }".Hooks]
+"*" = "ref = 'defs.Hook'"
+
+["defs = { hidden = true }".Build]
+ignore-vcs = "boolean"
+include = [ "string" ]
+exclude = [ "string" ]
+artifacts = [ "string" ]
+only-packages = "boolean"
+sources = [
+    "union",
+    { "*" = "string" },
+    [ "string" ],
+]
+skip-excluded-dirs = "boolean"
+reproducible = "boolean"
+directory = "string"
+dev-mode-dirs = [ "string" ]
+dev-mode-exact = "boolean"
+targets = "ref = 'defs.CustomTargets'"
+hooks = "ref = 'defs.Hooks'"
+"*" = "any-value"
+
+["defs = { hidden = true }".Version]
+path = "string"
+pattern = "string"
+"*" = "any-value"
+
+["defs = { hidden = true }".PublishIndex]
+disable = "boolean"
+"*" = "any-value"
+
+["defs = { hidden = true }".PublishIndex.repos]
+main = "boolean"
+test = "boolean"
+
+["defs = { hidden = true }".PublishIndex.repos."*"]
+url = "string"
+"*" = "any-value"
+
+["defs = { hidden = true }".Publish]
+index = "ref = 'defs.PublishIndex'"
+"*" = "any-value"

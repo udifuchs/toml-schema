@@ -1,0 +1,66 @@
+format = "ref = 'defs.FormatOptions'"
+toml-version = "ref = 'defs.TomlVersion'"
+include = [ "string" ]
+exclude = [ "string" ]
+lint = "ref = 'defs.LintOptions'"
+server = "ref = 'defs.ServerOptions'"
+schema = "ref = 'defs.SchemaOptions'"
+schemas = [ "ref = 'defs.Schema'" ]
+
+["defs = { hidden = true }"]
+TomlVersion = """enum = [
+    "v1.0.0",
+    "v1.1.0-preview",
+]"""
+BoolDefaultTrue = "boolean"
+OneOrMany_for_SchemaCatalogPath = [
+    "union",
+    "ref = 'defs.SchemaCatalogPath'",
+    [ "ref = 'defs.SchemaCatalogPath'" ],
+]
+SchemaCatalogPath = "string"
+Schema = [
+    "union",
+    "ref = 'defs.RootSchema'",
+    "ref = 'defs.SubSchema'",
+]
+
+["defs = { hidden = true }".FormatOptions]
+
+["defs = { hidden = true }".LintOptions]
+
+["defs = { hidden = true }".ServerOptions]
+hover = "ref = 'defs.ServerHover'"
+completion = "ref = 'defs.ServerCompletion'"
+formatting = "ref = 'defs.ServerFormatting'"
+diagnostics = "ref = 'defs.ServerDiagnostics'"
+
+["defs = { hidden = true }".ServerHover]
+enabled = "ref = 'defs.BoolDefaultTrue'"
+
+["defs = { hidden = true }".ServerCompletion]
+enabled = "ref = 'defs.BoolDefaultTrue'"
+
+["defs = { hidden = true }".ServerFormatting]
+enabled = "ref = 'defs.BoolDefaultTrue'"
+
+["defs = { hidden = true }".ServerDiagnostics]
+enabled = "ref = 'defs.BoolDefaultTrue'"
+
+["defs = { hidden = true }".SchemaOptions]
+enabled = "ref = 'defs.BoolDefaultTrue'"
+strict = "ref = 'defs.BoolDefaultTrue'"
+catalog = "ref = 'defs.SchemaCatalog'"
+
+["defs = { hidden = true }".SchemaCatalog]
+path = "ref = 'defs.OneOrMany_for_SchemaCatalogPath'"
+
+["defs = { hidden = true }".RootSchema]
+toml-version = "ref = 'defs.TomlVersion'"
+"path = { required = true }" = "string"
+"include = { required = true }" = [ "string" ]
+
+["defs = { hidden = true }".SubSchema]
+"path = { required = true }" = "string"
+"include = { required = true }" = [ "string" ]
+root-keys = "string"

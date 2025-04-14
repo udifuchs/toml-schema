@@ -1305,7 +1305,10 @@ def run_toml_schema(*args: str) -> None:
         runpy.run_module("toml_schema", run_name="__main__")
 
 
-def test_main(capsys: pytest.CaptureFixture[str]) -> None:
+def test_main(
+    tmp_path: pathlib.Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     """Test main entry point."""
     # Test argument error:
     with pytest.raises(SystemExit, match="2"):
@@ -1338,23 +1341,22 @@ def test_main(capsys: pytest.CaptureFixture[str]) -> None:
     assert captured.out == f"toml-schema {toml_schema.__version__}\n"
     assert captured.err == ""
 
-    # Check schema of pyproject.toml full example from https://packaging.python.org/
-    run_toml_schema("examples/pyproject.toml-schema", "examples/pyproject.toml")
-    captured = capsys.readouterr()
-    assert captured.out == "TOML schema validated.\n"
-    assert captured.err == ""
-
-    # Check schema of our own pyproject.toml:
-    run_toml_schema("examples/pyproject.toml-schema", "pyproject.toml")
+    schema_path = tmp_path / "main.toml-schema"
+    toml_path = tmp_path / "main.toml"
+    with schema_path.open("w") as schema_file:
+        schema_file.write('name = "string"')
+    with toml_path.open("w") as toml_file:
+        toml_file.write('name = "joe"')
+    run_toml_schema(str(schema_path), str(toml_path))
     captured = capsys.readouterr()
     assert captured.out == "TOML schema validated.\n"
     assert captured.err == ""
 
     # Test failed schema check:
+    with toml_path.open("w") as toml_file:
+        toml_file.write("name = 3")
     with pytest.raises(SystemExit, match="1"):
-        run_toml_schema("pyproject.toml", "examples/pyproject.toml-schema")
+        run_toml_schema(str(schema_path), str(toml_path))
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert (
-        captured.err == "'project.name': 'toml-schema' is not a valid keyword type.\n"
-    )
+    assert captured.err == "'name': Value 3 is not: \"string\"\n"

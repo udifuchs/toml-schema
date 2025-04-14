@@ -1,0 +1,138 @@
+[project]
+# PEP 621 project metadata
+# https://www.python.org/dev/peps/pep-0621
+name = "pdm-backend"
+description = "The build backend used by PDM that supports latest packaging standards"
+authors = [
+  { name = "Frost Ming", email = "me@frostming.com" }
+]
+license = {text = "MIT"}
+requires-python = ">=3.9"
+readme = "README.md"
+keywords = ["packaging", "PEP 517", "build"]
+dynamic = ["version"]
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "importlib-metadata>=3.6; python_version < \"3.10\""
+]
+
+[project.urls]
+Homepage = "https://github.com/pdm-project/pdm-backend"
+Repository = "https://github.com/pdm-project/pdm-backend"
+Documentation = "https://backend.pdm-project.org"
+
+[build-system]
+requires = []
+build-backend = "pdm.backend.intree"
+backend-path = ["src"]
+
+[tool.ruff]
+src = ["src"]
+target-version = "py38"
+exclude = ["tests/fixtures"]
+
+[tool.ruff.lint]
+extend-select = [
+  "I",    # isort
+  "C4",   # flake8-comprehensions
+  "W",    # pycodestyle
+  "YTT",  # flake8-2020
+  "UP",   # pyupgrade
+  "FA",   # flake8-annotations
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = ["pdm.backend"]
+
+[tool.vendoring]
+destination = "src/pdm/backend/_vendor/"
+requirements = "src/pdm/backend/_vendor/vendor.txt"
+namespace = "pdm.backend._vendor"
+patches-dir = "scripts/patches"
+protected-files = ["__init__.py", "README.md", "vendor.txt"]
+
+[tool.vendoring.transformations]
+substitute = [
+    {match = "import packaging", replace = "import pdm.backend._vendor.packaging"},
+]
+drop = [
+    "bin/",
+    "*.so",
+    "typing.*",
+    "*/tests/",
+    "**/test_*.py",
+    "**/*_test.py"
+]
+
+[tool.pdm.version]
+source = "scm"
+
+[tool.pdm.build]
+includes = ["src"]
+package-dir = "src"
+source-includes = ["tests"]
+
+[tool.pdm.dev-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-gitconfig",
+    "pytest-xdist",
+    "setuptools",
+]
+
+dev = [
+    "editables>=0.3",
+    "pre-commit>=2.21.0",
+    "vendoring>=1.2.0; python_version ~= \"3.8\"",
+]
+docs = [
+    "mkdocs>=1.4.2",
+    "mkdocstrings[python]>=0.19.0",
+    "mkdocs-material>=8.5.10",
+    "mkdocs-version-annotations>=1.0.0",
+]
+
+[tool.pdm.scripts]
+build = "python scripts/build.py"
+docs = "mkdocs serve"
+test = "pytest"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+ignore_errors = true
+
+[tool.mypy]
+ignore_missing_imports = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_untyped_decorators = true
+explicit_package_bases = true
+namespace_packages = true
+
+[[tool.mypy.overrides]]
+module = "pdm.backend._vendor.*"
+ignore_errors = true

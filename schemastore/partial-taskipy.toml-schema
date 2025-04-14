@@ -1,0 +1,31 @@
+settings = "ref = 'defs.Settings'"
+
+[tasks]
+"pattern = '^.+$'" = "ref = 'defs.Task'"
+
+[variables]
+"pattern = '^[0-9a-zA-Z]+$'" = [
+    "union",
+    "ref = 'defs.VariableValue'",
+    "ref = 'defs.Variable'",
+]
+
+["defs = { hidden = true }"]
+Task = [
+    "union",
+    "ref = 'defs.Command'",
+    { "cmd = { required = true }" = "ref = 'defs.Command'", help = "string", use_vars = "ref = 'defs.UseVars'", cwd = "ref = 'defs.Cwd'", "*" = "any-value" },
+]
+Command = "string"
+VariableValue = "string"
+UseVars = "boolean"
+Cwd = "string"
+
+["defs = { hidden = true }".Variable]
+var = "ref = 'defs.VariableValue'"
+recursive = "boolean"
+"*" = "any-value"
+
+["defs = { hidden = true }".Settings]
+use_vars = "ref = 'defs.UseVars'"
+cwd = "ref = 'defs.Cwd'"

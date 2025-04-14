@@ -1,0 +1,16 @@
+include = "ref = 'defs.selector'"
+exclude = "ref = 'defs.selector'"
+include_bins = "ref = 'defs.selector'"
+exclude_bins = "ref = 'defs.selector'"
+env_file = "string"
+
+[env]
+"*" = "string"
+
+["defs = { hidden = true }"]
+fnmatch-filter = "string"
+selector = [
+    "union",
+    "ref = 'defs.fnmatch-filter'",
+    [ "ref = 'defs.fnmatch-filter'" ],
+]

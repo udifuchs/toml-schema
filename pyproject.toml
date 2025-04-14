@@ -25,6 +25,9 @@ dynamic = [ "version" ]
 [project.scripts]
 toml-schema = "toml_schema.__main__:main"
 
+[tool.setuptools]
+py-modules = [ "toml_schema" ]
+
 [tool.setuptools.dynamic]
 version = { attr = "toml_schema.__version__" }
 
@@ -47,6 +50,7 @@ ignore = [
     "EM102",  # Exception must not use an f-string literal, assign to variable first
     "FA100",  # Add `from __future__ import annotations` to simplify `typing.Optional`
     "PLR2004",  # Magic value used in comparison, consider replacing `2` with a constant variable
+    "TC003",  # Move standard library import `...` into a type-checking block
     "TC006",  # Add quotes to type expression in `typing.cast()`
     "TRY003",  # Avoid specifying long messages outside the exception class
 ]

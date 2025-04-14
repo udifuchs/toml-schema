@@ -1,0 +1,11 @@
+select = "ref = 'defs.checks'"
+ignore = [
+    "union",
+    "ref = 'defs.checks'",
+    { "pattern = '^[A-Z]+[0-9]*$'" = "string" },
+]
+
+["defs = { hidden = true }"]
+checks = [ """
+    pattern = '^[A-Z]+[0-9]*$'
+""" ]

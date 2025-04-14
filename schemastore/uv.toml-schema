@@ -1,0 +1,441 @@
+allow-insecure-host = [ "ref = 'defs.TrustedHost'" ]
+cache-dir = "string"
+cache-keys = [ "ref = 'defs.CacheKey'" ]
+check-url = "ref = 'defs.IndexUrl'"
+compile-bytecode = "boolean"
+concurrent-builds = "integer = { min = 1 }"
+concurrent-downloads = "integer = { min = 1 }"
+concurrent-installs = "integer = { min = 1 }"
+config-settings = "ref = 'defs.ConfigSettings'"
+conflicts = "ref = 'defs.SchemaConflicts'"
+constraint-dependencies = [ "string" ]
+default-groups = [
+    "union",
+    [ "ref = 'defs.GroupName'" ],
+    "enum = [ 'all' ]",
+]
+dependency-metadata = [ "ref = 'defs.StaticMetadata'" ]
+dev-dependencies = [ "string" ]
+environments = [ "string" ]
+exclude-newer = "ref = 'defs.ExcludeNewer'"
+extra-index-url = [ "ref = 'defs.IndexUrl'" ]
+find-links = [ "ref = 'defs.IndexUrl'" ]
+fork-strategy = "ref = 'defs.ForkStrategy'"
+index = [ "ref = 'defs.Index'" ]
+index-strategy = "ref = 'defs.IndexStrategy'"
+index-url = "ref = 'defs.IndexUrl'"
+keyring-provider = "ref = 'defs.KeyringProviderType'"
+link-mode = "ref = 'defs.LinkMode'"
+managed = "boolean"
+native-tls = "boolean"
+no-binary = "boolean"
+no-binary-package = [ "ref = 'defs.PackageName'" ]
+no-build = "boolean"
+no-build-isolation = "boolean"
+no-build-isolation-package = [ "ref = 'defs.PackageName'" ]
+no-build-package = [ "ref = 'defs.PackageName'" ]
+no-cache = "boolean"
+no-index = "boolean"
+no-sources = "boolean"
+offline = "boolean"
+override-dependencies = [ "string" ]
+package = "boolean"
+pip = "ref = 'defs.PipOptions'"
+prerelease = "ref = 'defs.PrereleaseMode'"
+preview = "boolean"
+publish-url = "string"
+pypy-install-mirror = "string"
+python-downloads = "ref = 'defs.PythonDownloads'"
+python-install-mirror = "string"
+python-preference = "ref = 'defs.PythonPreference'"
+reinstall = "boolean"
+reinstall-package = [ "ref = 'defs.PackageName'" ]
+required-version = "ref = 'defs.RequiredVersion'"
+resolution = "ref = 'defs.ResolutionMode'"
+sources = "ref = 'defs.ToolUvSources'"
+trusted-publishing = "ref = 'defs.TrustedPublishing'"
+upgrade = "boolean"
+upgrade-package = [ "ref = 'defs.Requirement'" ]
+workspace = "ref = 'defs.ToolUvWorkspace'"
+"*" = "any-value"
+
+["defs = { hidden = true }"]
+AnnotationStyle = [
+    "union",
+    """enum = [
+    "line",
+]""",
+    """enum = [
+    "split",
+]""",
+]
+CacheKey = [
+    "union",
+    "string",
+    { "file = { required = true }" = "string" },
+    { "git = { required = true }" = "ref = 'defs.GitPattern'" },
+    { "env = { required = true }" = "string" },
+]
+ConfigSettingValue = [
+    "union",
+    { "String = { required = true }" = "string" },
+    { "List = { required = true }" = [ "string" ] },
+]
+ExcludeNewer = """
+    pattern = '^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}:\\d{2}(Z|[+-]\\d{2}:\\d{2}))?$'
+"""
+ExtraName = "string"
+ForkStrategy = [
+    "union",
+    """enum = [
+    "fewest",
+]""",
+    """enum = [
+    "requires-python",
+]""",
+]
+GitPattern = [
+    "union",
+    "boolean",
+    "ref = 'defs.GitSet'",
+]
+GroupName = "string"
+IndexName = "string"
+IndexStrategy = [
+    "union",
+    """enum = [
+    "first-index",
+]""",
+    """enum = [
+    "unsafe-first-match",
+]""",
+    """enum = [
+    "unsafe-best-match",
+]""",
+]
+IndexUrl = "string"
+KeyringProviderType = [
+    "union",
+    """enum = [
+    "disabled",
+]""",
+    """enum = [
+    "subprocess",
+]""",
+]
+LinkMode = [
+    "union",
+    """enum = [
+    "clone",
+]""",
+    """enum = [
+    "copy",
+]""",
+    """enum = [
+    "hardlink",
+]""",
+    """enum = [
+    "symlink",
+]""",
+]
+MarkerTree = "string"
+PackageName = "string"
+PackageNameSpecifier = """
+    pattern = '^(:none:|:all:|([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]))$'
+"""
+PrereleaseMode = [
+    "union",
+    """enum = [
+    "disallow",
+]""",
+    """enum = [
+    "allow",
+]""",
+    """enum = [
+    "if-necessary",
+]""",
+    """enum = [
+    "explicit",
+]""",
+    """enum = [
+    "if-necessary-or-explicit",
+]""",
+]
+PythonDownloads = [
+    "union",
+    """enum = [
+    "automatic",
+]""",
+    """enum = [
+    "manual",
+]""",
+    """enum = [
+    "never",
+]""",
+]
+PythonPreference = [
+    "union",
+    """enum = [
+    "only-managed",
+]""",
+    """enum = [
+    "managed",
+]""",
+    """enum = [
+    "system",
+]""",
+    """enum = [
+    "only-system",
+]""",
+]
+PythonVersion = """
+    pattern = '^3\\.\\d+(\\.\\d+)?$'
+"""
+RequiredVersion = "string"
+Requirement = "string"
+ResolutionMode = [
+    "union",
+    """enum = [
+    "highest",
+]""",
+    """enum = [
+    "lowest",
+]""",
+    """enum = [
+    "lowest-direct",
+]""",
+]
+SchemaConflictSet = [ "ref = 'defs.SchemaConflictItem'" ]
+SchemaConflicts = [ "ref = 'defs.SchemaConflictSet'" ]
+Source = [
+    "union",
+    { branch = "string", extra = "ref = 'defs.ExtraName'", "git = { required = true }" = "string", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", rev = "string", subdirectory = "ref = 'defs.String'", tag = "string" },
+    { extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", subdirectory = "ref = 'defs.String'", "url = { required = true }" = "string" },
+    { editable = "boolean", extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", "path = { required = true }" = "ref = 'defs.String'" },
+    { extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", "index = { required = true }" = "ref = 'defs.IndexName'", marker = "ref = 'defs.MarkerTree'" },
+    { extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", "workspace = { required = true }" = "boolean" },
+]
+Sources = "ref = 'defs.SourcesWire'"
+SourcesWire = [
+    "union",
+    "ref = 'defs.Source'",
+    [ "ref = 'defs.Source'" ],
+]
+String = "string"
+TargetTriple = [
+    "union",
+    """enum = [
+    "windows",
+]""",
+    """enum = [
+    "linux",
+]""",
+    """enum = [
+    "macos",
+]""",
+    """enum = [
+    "x86_64-pc-windows-msvc",
+]""",
+    """enum = [
+    "i686-pc-windows-msvc",
+]""",
+    """enum = [
+    "x86_64-unknown-linux-gnu",
+]""",
+    """enum = [
+    "aarch64-apple-darwin",
+]""",
+    """enum = [
+    "x86_64-apple-darwin",
+]""",
+    """enum = [
+    "aarch64-unknown-linux-gnu",
+]""",
+    """enum = [
+    "aarch64-unknown-linux-musl",
+]""",
+    """enum = [
+    "x86_64-unknown-linux-musl",
+]""",
+    """enum = [
+    "x86_64-manylinux2014",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_17",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_28",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_31",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_32",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_33",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_34",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_35",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_36",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_37",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_38",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_39",
+]""",
+    """enum = [
+    "x86_64-manylinux_2_40",
+]""",
+    """enum = [
+    "aarch64-manylinux2014",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_17",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_28",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_31",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_32",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_33",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_34",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_35",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_36",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_37",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_38",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_39",
+]""",
+    """enum = [
+    "aarch64-manylinux_2_40",
+]""",
+]
+TrustedHost = "string"
+TrustedPublishing = [
+    "union",
+    """enum = [
+    "always",
+    "never",
+]""",
+    """enum = [
+    "automatic",
+]""",
+]
+
+["defs = { hidden = true }".ConfigSettings]
+"*" = "ref = 'defs.ConfigSettingValue'"
+
+["defs = { hidden = true }".GitSet]
+commit = "boolean"
+tags = "boolean"
+
+["defs = { hidden = true }".Index]
+default = "boolean"
+explicit = "boolean"
+name = "ref = 'defs.IndexName'"
+publish-url = "string"
+"url = { required = true }" = "ref = 'defs.IndexUrl'"
+"*" = "any-value"
+
+["defs = { hidden = true }".PipOptions]
+all-extras = "boolean"
+allow-empty-requirements = "boolean"
+annotation-style = "ref = 'defs.AnnotationStyle'"
+break-system-packages = "boolean"
+compile-bytecode = "boolean"
+config-settings = "ref = 'defs.ConfigSettings'"
+custom-compile-command = "string"
+dependency-metadata = [ "ref = 'defs.StaticMetadata'" ]
+emit-build-options = "boolean"
+emit-find-links = "boolean"
+emit-index-annotation = "boolean"
+emit-index-url = "boolean"
+emit-marker-expression = "boolean"
+exclude-newer = "ref = 'defs.ExcludeNewer'"
+extra = [ "ref = 'defs.ExtraName'" ]
+extra-index-url = [ "ref = 'defs.IndexUrl'" ]
+find-links = [ "ref = 'defs.IndexUrl'" ]
+fork-strategy = "ref = 'defs.ForkStrategy'"
+generate-hashes = "boolean"
+index-strategy = "ref = 'defs.IndexStrategy'"
+index-url = "ref = 'defs.IndexUrl'"
+keyring-provider = "ref = 'defs.KeyringProviderType'"
+link-mode = "ref = 'defs.LinkMode'"
+no-annotate = "boolean"
+no-binary = [ "ref = 'defs.PackageNameSpecifier'" ]
+no-build = "boolean"
+no-build-isolation = "boolean"
+no-build-isolation-package = [ "ref = 'defs.PackageName'" ]
+no-deps = "boolean"
+no-emit-package = [ "ref = 'defs.PackageName'" ]
+no-extra = [ "ref = 'defs.ExtraName'" ]
+no-header = "boolean"
+no-index = "boolean"
+no-sources = "boolean"
+no-strip-extras = "boolean"
+no-strip-markers = "boolean"
+only-binary = [ "ref = 'defs.PackageNameSpecifier'" ]
+output-file = "string"
+prefix = "string"
+prerelease = "ref = 'defs.PrereleaseMode'"
+python = "string"
+python-platform = "ref = 'defs.TargetTriple'"
+python-version = "ref = 'defs.PythonVersion'"
+reinstall = "boolean"
+reinstall-package = [ "ref = 'defs.PackageName'" ]
+require-hashes = "boolean"
+resolution = "ref = 'defs.ResolutionMode'"
+strict = "boolean"
+system = "boolean"
+target = "string"
+universal = "boolean"
+upgrade = "boolean"
+upgrade-package = [ "ref = 'defs.Requirement'" ]
+verify-hashes = "boolean"
+
+["defs = { hidden = true }".SchemaConflictItem]
+extra = "ref = 'defs.ExtraName'"
+group = "ref = 'defs.GroupName'"
+package = "ref = 'defs.PackageName'"
+"*" = "any-value"
+
+["defs = { hidden = true }".StaticMetadata]
+"name = { required = true }" = "ref = 'defs.PackageName'"
+provides-extras = [ "ref = 'defs.ExtraName'" ]
+requires-dist = [ "ref = 'defs.Requirement'" ]
+requires-python = "string"
+version = "string"
+"*" = "any-value"
+
+["defs = { hidden = true }".ToolUvSources]
+"*" = "ref = 'defs.Sources'"
+
+["defs = { hidden = true }".ToolUvWorkspace]
+exclude = [ "ref = 'defs.String'" ]
+members = [ "ref = 'defs.String'" ]

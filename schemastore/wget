@@ -1,0 +1,2 @@
+find . -name "*.json" -exec wget --output-document={} https://json.schemastore.org/{} \;
+wget --output-document=partial-setuptools.json https://github.com/pypa/setuptools/raw/refs/heads/main/setuptools/config/setuptools.schema.json

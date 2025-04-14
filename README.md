@@ -221,8 +221,7 @@ The code to validate a TOML file in python is:
 import tomllib
 import toml_schema
 
-with open("examples/pyproject.toml-schema", "rb") as schema_file:
-    schema = toml_schema.load(schema_file)
+schema = toml_schema.from_file("schema-store/pyproject.toml-schema")
 with open("pyproject.toml", "rb") as toml_file:
     toml_table: dict[str, toml_schema.TOMLValue] = tomllib.load(toml_file)
 try:

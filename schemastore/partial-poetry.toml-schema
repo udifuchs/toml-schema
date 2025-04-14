@@ -1,0 +1,205 @@
+package-mode = "boolean"
+name = "ref = 'defs.poetry-name'"
+version = "ref = 'defs.poetry-version'"
+description = "ref = 'defs.poetry-description'"
+keywords = [ "string" ]
+homepage = "string"
+repository = "string"
+documentation = "string"
+license = "string"
+authors = "ref = 'defs.poetry-authors'"
+maintainers = "ref = 'defs.poetry-maintainers'"
+readme = [
+    "union",
+    "string",
+    [ "string" ],
+]
+classifiers = [ "any-value" ]
+packages = [ { "include = { required = true }" = "ref = 'defs.poetry-include-path'", from = "string", format = "ref = 'defs.poetry-package-formats'", to = "string" } ]
+include = [ [
+    "union",
+    "ref = 'defs.poetry-include-path'",
+    { "path = { required = true }" = "ref = 'defs.poetry-include-path'", format = "ref = 'defs.poetry-package-formats'" },
+] ]
+exclude = [ "any-value" ]
+build = "ref = 'defs.poetry-build-section'"
+source = [ { "name = { required = true }" = "string", url = "string", priority = """enum = [
+    "default",
+    "primary",
+    "secondary",
+    "supplemental",
+    "explicit",
+]""" } ]
+"*" = "any-value"
+
+[dependencies]
+python = "string"
+"*" = "ref = 'defs.poetry-dependency-any'"
+
+[dev-dependencies]
+"pattern = '^[a-zA-Z-_.0-9]+$'" = "ref = 'defs.poetry-dependency-any'"
+"*" = "any-value"
+
+[extras]
+"pattern = '^[a-zA-Z-_.0-9]+$'" = [ "string" ]
+"*" = "any-value"
+
+[group]
+"*" = "any-value"
+
+[group."pattern = '^[a-zA-Z-_.0-9]+$'"]
+optional = "boolean"
+
+[group."pattern = '^[a-zA-Z-_.0-9]+$'"."dependencies = { required = true }"]
+"pattern = '^[a-zA-Z-_.0-9]+$'" = "ref = 'defs.poetry-dependency-any'"
+
+[scripts]
+"pattern = '^[a-zA-Z-_.0-9]+$'" = [
+    "union",
+    "ref = 'defs.poetry-script-legacy'",
+    "ref = 'defs.poetry-script-table'",
+]
+"*" = "any-value"
+
+[plugins]
+"*" = "any-value"
+
+[plugins."pattern = '^dotenv$'"]
+ignore = "string"
+location = "string"
+
+[plugins."pattern = '^[a-zA-Z-_.0-9]+$'"]
+"pattern = '^[a-zA-Z-_.0-9]+$'" = "string"
+"*" = "any-value"
+
+[urls]
+"pattern = '^.+$'" = "string"
+"*" = "any-value"
+
+["defs = { hidden = true }"]
+poetry-name = "string"
+poetry-version = "string"
+poetry-description = """
+    pattern = '^[^\\n]*$'
+"""
+poetry-author-pattern = """
+    pattern = '''^(?:[- .,\\w\\d'’"():&]+)(?: <(?:.+?)>)?'''
+"""
+poetry-authors = [ "ref = 'defs.poetry-author-pattern'" ]
+poetry-maintainers = [ "ref = 'defs.poetry-author-pattern'" ]
+poetry-include-path = "string"
+poetry-package-format = """enum = [
+    "sdist",
+    "wheel",
+]"""
+poetry-package-formats = [
+    "union",
+    "ref = 'defs.poetry-package-format'",
+    [ "ref = 'defs.poetry-package-format'" ],
+]
+poetry-dependency-any = [
+    "union",
+    "ref = 'defs.poetry-dependency'",
+    "ref = 'defs.poetry-long-dependency'",
+    "ref = 'defs.poetry-git-dependency'",
+    "ref = 'defs.poetry-file-dependency'",
+    "ref = 'defs.poetry-path-dependency'",
+    "ref = 'defs.poetry-url-dependency'",
+    "ref = 'defs.poetry-multiple-constraints-dependency'",
+]
+poetry-pep440-version = "string"
+poetry-dependency = "ref = 'defs.poetry-pep440-version'"
+poetry-multiple-constraints-dependency = [ [
+    "union",
+    "ref = 'defs.poetry-dependency'",
+    "ref = 'defs.poetry-long-dependency'",
+    "ref = 'defs.poetry-git-dependency'",
+    "ref = 'defs.poetry-file-dependency'",
+    "ref = 'defs.poetry-path-dependency'",
+    "ref = 'defs.poetry-url-dependency'",
+] ]
+poetry-script-table = [
+    "union",
+    "ref = 'defs.poetry-extra-script-legacy'",
+    "ref = 'defs.poetry-extra-scripts'",
+]
+poetry-script-legacy = "string"
+poetry-build-script = "string"
+poetry-build-section = [
+    "union",
+    "ref = 'defs.poetry-build-script'",
+    "ref = 'defs.poetry-build-config'",
+]
+
+["defs = { hidden = true }".poetry-long-dependency]
+"version = { required = true }" = "ref = 'defs.poetry-pep440-version'"
+python = "string"
+platform = "string"
+markers = "string"
+allow-prereleases = "boolean"
+allows-prereleases = "boolean"
+optional = "boolean"
+extras = [ "string" ]
+source = "string"
+
+["defs = { hidden = true }".poetry-git-dependency]
+"git = { required = true }" = [
+    "union",
+    "string",
+    """
+    pattern = '^([A-Za-z0-9\\-]+@|https://|http://)[A-Za-z][A-Za-z0-9+.-]*(:|/)[A-Za-z0-9\\-\\.]+(/[A-Za-z0-9\\-_\\.]+)+\\.git$'
+""",
+]
+branch = "string"
+tag = "string"
+rev = "string"
+subdirectory = "string"
+python = "string"
+platform = "string"
+markers = "string"
+allow-prereleases = "boolean"
+allows-prereleases = "boolean"
+optional = "boolean"
+extras = [ "string" ]
+develop = "boolean"
+
+["defs = { hidden = true }".poetry-file-dependency]
+"file = { required = true }" = "string"
+python = "string"
+platform = "string"
+markers = "string"
+optional = "boolean"
+extras = [ "string" ]
+
+["defs = { hidden = true }".poetry-path-dependency]
+"path = { required = true }" = "string"
+python = "string"
+platform = "string"
+markers = "string"
+optional = "boolean"
+extras = [ "string" ]
+develop = "boolean"
+
+["defs = { hidden = true }".poetry-url-dependency]
+"url = { required = true }" = "string"
+python = "string"
+platform = "string"
+markers = "string"
+optional = "boolean"
+extras = [ "string" ]
+
+["defs = { hidden = true }".poetry-extra-scripts]
+"reference = { required = true }" = "string"
+"type = { required = true }" = """enum = [
+    "file",
+    "console",
+]"""
+extras = [ "string" ]
+
+["defs = { hidden = true }".poetry-extra-script-legacy]
+callable = "ref = 'defs.poetry-script-legacy'"
+extras = [ "string" ]
+
+["defs = { hidden = true }".poetry-build-config]
+generate-setup-file = "boolean"
+script = "ref = 'defs.poetry-build-script'"

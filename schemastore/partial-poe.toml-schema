@@ -1,0 +1,190 @@
+default_array_item_task_type = """enum = [
+    "cmd",
+    "expr",
+    "ref",
+    "script",
+    "shell",
+]"""
+default_array_task_type = "string"
+default_task_type = """enum = [
+    "cmd",
+    "expr",
+    "ref",
+    "script",
+    "shell",
+]"""
+envfile = [
+    "union",
+    "string",
+    [ "string" ],
+]
+include = [
+    "union",
+    "string",
+    [ "string" ],
+    { "*" = "string" },
+]
+poetry_command = "string"
+shell_interpreter = [
+    "union",
+    "string",
+    [ "string" ],
+]
+verbosity = "integer = { min = -1, max = 1 }"
+
+[env]
+"pattern = '^.+$'" = [
+    "union",
+    "string",
+    { default = "string", "*" = "any-value" },
+]
+
+[executor]
+location = "string"
+type = """enum = [
+    "auto",
+    "poetry",
+    "virtualenv",
+    "simple",
+]"""
+
+[poetry_hooks]
+"*" = "string"
+
+[tasks]
+"pattern = '^[a-zA-Z_][a-zA-Z0-9_:-]*$'" = [
+    "union",
+    "ref = 'defs.one_of_tasks'",
+    "ref = 'defs.tasks_array'",
+]
+
+["defs = { hidden = true }"]
+cmd_task = [
+    "union",
+    "ref = 'defs.common_task'",
+    { "cmd = { required = true }" = "string", "*" = "any-value" },
+]
+expr_task = [
+    "union",
+    "ref = 'defs.common_task'",
+    { assert = "boolean", "expr = { required = true }" = "string", imports = [ "string" ], "*" = "any-value" },
+]
+ref_task = [
+    "union",
+    "ref = 'defs.common_task'",
+    { "ref = { required = true }" = "string", "*" = "any-value" },
+]
+script_task = [
+    "union",
+    "ref = 'defs.common_task'",
+    { print_result = "boolean", "script = { required = true }" = "string", "*" = "any-value" },
+]
+sequence_task = [
+    "union",
+    "ref = 'defs.common_task'",
+    { default_item_type = "string", ignore_fail = [
+    "union",
+    "boolean",
+    """enum = [
+    "return_zero",
+    "return_non_zero",
+]""",
+], "sequence = { required = true }" = "ref = 'defs.tasks_array'", "*" = "any-value" },
+]
+shell_task = [
+    "union",
+    "ref = 'defs.common_task'",
+    { interpreter = [
+    "union",
+    "string",
+    [ "string" ],
+], "shell = { required = true }" = "string", "*" = "any-value" },
+]
+switch_task = [
+    "union",
+    "ref = 'defs.common_task'",
+    { "control = { required = true }" = "ref = 'defs.one_of_tasks'", default = """enum = [
+    "pass",
+    "fail",
+]""", "switch = { required = true }" = [ { case = [
+    "union",
+    "string",
+    [ "string" ],
+], "*" = "any-value" } ], "*" = "any-value" },
+]
+one_of_tasks = [
+    "union",
+    "string",
+    "ref = 'defs.cmd_task'",
+    "ref = 'defs.script_task'",
+    "ref = 'defs.shell_task'",
+    "ref = 'defs.sequence_task'",
+    "ref = 'defs.expr_task'",
+    "ref = 'defs.switch_task'",
+    "ref = 'defs.ref_task'",
+]
+tasks_array = [ "ref = 'defs.one_of_tasks'" ]
+
+["defs = { hidden = true }".args]
+default = [
+    "union",
+    "string",
+    "integer",
+    "float",
+    "boolean",
+]
+help = "string"
+multiple = [
+    "union",
+    "boolean",
+    "integer",
+]
+"name = { required = true }" = "string"
+options = [ "string" ]
+positional = "boolean"
+required = "boolean"
+type = [
+    "union",
+    "string",
+    [ "any-value" ],
+    { "*" = "any-value" },
+    "boolean",
+    "float",
+]
+"*" = "any-value"
+
+["defs = { hidden = true }".common_task]
+args = [
+    "union",
+    [ [
+    "union",
+    "string",
+    "ref = 'defs.args'",
+] ],
+    { "*" = "ref = 'defs.args'" },
+]
+capture_stdout = """
+    pattern = '^(?:\\$\\{[^\\}]+\\}/)?.+$'
+"""
+cwd = """
+    pattern = '^(?!\\s*$).+'
+"""
+deps = [ "string" ]
+envfile = [
+    "union",
+    "string",
+    [ "string" ],
+]
+help = "string"
+use_exec = "boolean"
+"*" = "any-value"
+
+["defs = { hidden = true }".common_task.env]
+"pattern = '^.+$'" = [
+    "union",
+    "string",
+    { default = "string", "*" = "any-value" },
+]
+
+["defs = { hidden = true }".common_task.uses]
+"*" = "string"

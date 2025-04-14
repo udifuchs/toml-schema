@@ -1,0 +1,13 @@
+root = "string"
+version_scheme = "string"
+local_scheme = "string"
+version_file = "string"
+version_file_template = "string"
+write_to = "string"
+relative_to = "string"
+tag_regex = "string"
+parentdir_prefix_version = "string"
+fallback_version = "string"
+git_describe_command = [ "string" ]
+normalize = "boolean"
+version_cls = "string"

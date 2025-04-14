@@ -1,0 +1,36 @@
+code = "string"
+line-length = "integer"
+target-version = [ """enum = [
+    "py33",
+    "py34",
+    "py35",
+    "py36",
+    "py37",
+    "py38",
+    "py39",
+    "py310",
+    "py311",
+    "py312",
+    "py313",
+]""" ]
+pyi = "boolean"
+ipynb = "boolean"
+python-cell-magics = [ "string" ]
+skip-source-first-line = "boolean"
+skip-string-normalization = "boolean"
+skip-magic-trailing-comma = "boolean"
+preview = "boolean"
+unstable = "boolean"
+enable-unstable-feature = [ "string" ]
+check = "boolean"
+diff = "boolean"
+color = "boolean"
+fast = "boolean"
+required-version = "string"
+exclude = "string"
+extend-exclude = "string"
+force-exclude = "string"
+include = "string"
+workers = "integer"
+quiet = "boolean"
+verbose = "boolean"

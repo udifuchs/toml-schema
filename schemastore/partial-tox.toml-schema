@@ -1,0 +1,2 @@
+legacy_tox_ini = "string"
+"*" = "any-value"
