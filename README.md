@@ -136,38 +136,73 @@ local-date-time = { }
 date = { }
 time = { }
 any-value = { }
+ref = "string"
+file = "string"
 ```
 
-Strings can be limited to a list of enumated values. For example:
+- Strings can be limited to a list of enumated values. For example:
 ```
 pixel-color = "enum = ['Red', 'Green', 'Blue']"
 ```
 
-Strings can also be specified with a regular expression pattern. For example, to specify that a string can only contain lower case characters:
+- Strings can also be specified with a regular expression pattern. For example, to specify that a string can only contain lower case characters:
 ```
 name = "pattern = '^[a-z]+$'"
 ```
 
-Integers and floats can have a limited range:
+- Integers and floats can have a limited range:
 ```
 discount-percent = "float = { min = 0.0, max = 100.0 }"
 ```
+
+- `ref` is used to reference other components defined in the schema. For example:
+```
+["def = { hidden = true }"]
+number = [ "union", "float", "integer" ]
+complex = [
+    "union",
+    "ref = 'def.number'",
+    { real = "ref = 'def.number'", imag = "ref = 'def.number'" },
+]
+
+[quantum]
+wave-function = "ref = 'def.complex'"
+```
+
+- `file` is used to reference other TOML schema files. The file path should always be relative to the main TOML file. Here is a minimal example:
+
+    `user.toml-schema`:
+    ```
+    name = "string"
+    ```
+
+    `main.toml-schema`:
+    ```
+    user = "file = 'user.toml-schema'"
+    ```
+
+    `main.toml`:
+    ```
+    user.name = "John"
+    ```
 
 ### Extra options for keys
 
 It is also possible to specify options for the keys of a table. For example, to specify that the "owner" key is required in the root table and that the "name" key is required in the "owner" table, use:
 ```
 ["owner = { required = true }"]
-"name = { required = true }" = "string
+"name = { required = true }" = "string"
 dob = "date"
 ```
+
+The `hidden` flag is used to hide keys in the schema. The standard use case is to hide the definition table `[def]` that is used internally in the scheam but should not be used directly in the TOML file.
 
 Key options can also be used to specify wildcard patterns for the keys. For example, to specify that any uppercase key in a table can be an integer, use:
 ```
 "pattern = '^[A-Z]+$'" = "integer"
 ```
 
-Any key with an "=" in it is assumed to be a key with options and is required to be a valid TOML. In the odd case where you actually want to have a key with an "=" in your schema you can specify it with a pattern:
+Any key with an "=" in it, is assumed to be a key with options and is required to be a valid TOML. In the odd case where you actually want to have a key with an "=" in your schema you can specify it with a pattern:
 ```
 "pattern = '^hello=world$'" = "string"
 ```

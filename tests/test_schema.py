@@ -1,5 +1,6 @@
 """Test functionality of toml-schema."""
 
+import pathlib
 import runpy
 import sys
 from typing import Optional
@@ -45,7 +46,8 @@ def test_create_schema() -> None:
             SchemaKey("temperatures"): private_toml_schema.Array(
                 [private_toml_schema.Float()]
             ),
-        }
+        },
+        is_root=True,
     )
     assert schema_table_to_str(schema) == schema_table_to_str(manual_schema)
     assert schema == manual_schema
@@ -62,6 +64,7 @@ def test_create_schema() -> None:
                 [private_toml_schema.Float()]
             ),
         },
+        is_root=True,
     )
     assert schema_table_to_str(schema) == schema_table_to_str(manual_schema)
     assert schema == manual_schema
@@ -90,7 +93,10 @@ def test_create_schema() -> None:
         date = { }
         time = { }
         any-value = { }
-        union = { }"""
+        union = { }
+        ref = "string"
+        file = "string"\
+        """
     schema = toml_schema.loads(types_schema_str)
     assert schema == private_toml_schema.TYPES_SCHEMA
     assert schema_table_to_str(schema) == types_schema_str.replace("        ", "")
@@ -454,8 +460,8 @@ def test_tables() -> None:
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple = { banana = 'string' }": "string"})
     assert (
-        str(exc_info.value) == "'apple': Key 'banana' not in schema: "
-        """{ required = "boolean" }"""
+        str(exc_info.value) == "'apple': Value {'banana': 'string'} not in: "
+        '[ "union", { required = "boolean" }, { hidden = "boolean" } ]'
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -470,8 +476,8 @@ def test_tables() -> None:
             {"fruit": [{"apple = { banana = 'string' }": "string"}]}
         )
     assert (
-        str(exc_info.value) == "'fruit[0].apple': Key 'banana' not in schema: "
-        '{ required = "boolean" }'
+        str(exc_info.value) == "'fruit[0].apple': Value {'banana': 'string'} not in: "
+        '[ "union", { required = "boolean" }, { hidden = "boolean" } ]'
     )
 
 
@@ -593,6 +599,31 @@ def test_union() -> None:
     schema.validate({"number": [3.3, 4.4, 5.5]})
 
 
+def test_union_merge_tables() -> None:
+    """Test if a union can merge tables."""
+    schema = toml_schema.loads("""number = [
+        "union",
+        { foo = "string" },
+        { bar = "float" },
+    ]""")
+    schema.validate({"number": {"foo": "yes"}})
+    schema.validate({"number": {"bar": 3.3}})
+    # A union of tables does not merge their keys:
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate(
+            {
+                "number": {
+                    "foo": "yes",
+                    "bar": 3.3,
+                }
+            }
+        )
+    assert (
+        str(exc_info.value) == "'number': Value {'foo': 'yes', 'bar': 3.3} not in: "
+        '[ "union", { foo = "string" }, { bar = "float" } ]'
+    )
+
+
 def test_check_error() -> None:
     """Test errors raised during check."""
     toml = """
@@ -696,7 +727,9 @@ def test_toml_type_schema() -> None:
         "date = { }, "
         "time = { }, "
         "any-value = { }, "
-        "union = { } }"
+        "union = { }, "
+        'ref = "string", '
+        'file = "string" }'
     )
 
 
@@ -704,7 +737,10 @@ def test_toml_key_schema() -> None:
     """Test the schema of the TOML key schema."""
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple = { required = 'yes' }": "string"})
-    assert str(exc_info.value) == "'apple.required': Value yes is not: \"boolean\""
+    assert (
+        str(exc_info.value) == "'apple': Value {'required': 'yes'} not in: "
+        '[ "union", { required = "boolean" }, { hidden = "boolean" } ]'
+    )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"apple = { }\nbanana = { }": "string"})
@@ -734,21 +770,13 @@ def test_toml_key_schema() -> None:
         """['"apple = { required = true }"', 'apple']"""
     )
 
-    with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads("""
-            "apple = { required = true, pattern = 'banana' }" = "string"
-        """)
-    assert (
-        str(exc_info.value)
-        == """'apple': Key 'pattern' not in schema: { required = "boolean" }"""
-    )
-
 
 def test_toml_string_type() -> None:
     """Test TOML string type."""
     schema = toml_schema.from_toml_table({"apple = { required = true }": "string"})
     assert schema == toml_schema.Table(
-        {SchemaKey("apple", required=True): private_toml_schema.String()}
+        {SchemaKey("apple", required=True): private_toml_schema.String()},
+        is_root=True,
     )
     schema.validate({"apple": "green"})
 
@@ -836,7 +864,8 @@ def test_toml_float_type() -> None:
     """Test TOML float type."""
     schema = toml_schema.from_toml_table({"price": "float = { min = 3.0, max = 7.0 }"})
     assert schema == toml_schema.Table(
-        {SchemaKey("price"): private_toml_schema.Float(min=3.0, max=7.0)}
+        {SchemaKey("price"): private_toml_schema.Float(min=3.0, max=7.0)},
+        is_root=True,
     )
     schema.validate({"price": 7.0})
 
@@ -872,7 +901,8 @@ def test_toml_int_type() -> None:
     """Test TOML integer type."""
     schema = toml_schema.from_toml_table({"price": "integer = { min = 3, max = 7 }"})
     assert schema == toml_schema.Table(
-        {SchemaKey("price"): private_toml_schema.Integer(min=3, max=7)}
+        {SchemaKey("price"): private_toml_schema.Integer(min=3, max=7)},
+        is_root=True,
     )
     schema.validate({"price": 7})
 
@@ -897,7 +927,8 @@ def test_toml_bool_type() -> None:
     """Test TOML boolean type."""
     schema = toml_schema.from_toml_table({"alive": "boolean = {}"})
     assert schema == toml_schema.Table(
-        {SchemaKey("alive"): private_toml_schema.Boolean()}
+        {SchemaKey("alive"): private_toml_schema.Boolean()},
+        is_root=True,
     )
     schema.validate({"alive": True})
 
@@ -914,7 +945,8 @@ def test_toml_datetime_type() -> None:
     """Test TOML datetime type."""
     schema = toml_schema.from_toml_table({"dob": "offset-date-time"})
     assert schema == toml_schema.Table(
-        {SchemaKey("dob"): private_toml_schema.OffsetDateTime()}
+        {SchemaKey("dob"): private_toml_schema.OffsetDateTime()},
+        is_root=True,
     )
     toml_table: dict[str, toml_schema.TOMLValue] = tomllib.loads(
         "dob = 1979-05-27T07:32:00-08:00"
@@ -936,7 +968,8 @@ def test_toml_datetime_type() -> None:
 
     schema = toml_schema.from_toml_table({"dob": "local-date-time"})
     assert schema == toml_schema.Table(
-        {SchemaKey("dob"): private_toml_schema.LocalDateTime()}
+        {SchemaKey("dob"): private_toml_schema.LocalDateTime()},
+        is_root=True,
     )
     toml_table = tomllib.loads("dob = 1979-05-27T07:32:00")
     schema.validate(toml_table)
@@ -958,7 +991,10 @@ def test_toml_datetime_type() -> None:
 def test_toml_date_type() -> None:
     """Test TOML date type."""
     schema = toml_schema.from_toml_table({"dob": "date = {}"})
-    assert schema == toml_schema.Table({SchemaKey("dob"): private_toml_schema.Date()})
+    assert schema == toml_schema.Table(
+        {SchemaKey("dob"): private_toml_schema.Date()},
+        is_root=True,
+    )
     toml_table: dict[str, toml_schema.TOMLValue] = tomllib.loads("dob = 1979-05-27")
     schema.validate(toml_table)
 
@@ -973,7 +1009,10 @@ def test_toml_date_type() -> None:
 def test_toml_time_type() -> None:
     """Test TOML time type."""
     schema = toml_schema.from_toml_table({"alarm": "time = {}"})
-    assert schema == toml_schema.Table({SchemaKey("alarm"): private_toml_schema.Time()})
+    assert schema == toml_schema.Table(
+        {SchemaKey("alarm"): private_toml_schema.Time()},
+        is_root=True,
+    )
     toml_table: dict[str, toml_schema.TOMLValue] = tomllib.loads("alarm = 08:00:00")
     schema.validate(toml_table)
 
@@ -1037,6 +1076,33 @@ def test_required_key() -> None:
     schema.validate({"fruit flies": "like an arrow"})
 
 
+def test_hidden_key() -> None:
+    """Test hidden keys."""
+    schema = toml_schema.loads("""
+        "number = { hidden = true }" = [ "union", "float", "integer" ]
+        price = "ref = 'number'"
+    """)
+    schema.validate({"price": 3})
+    schema.validate({"price": 3.3})
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"number": 3.3})
+    assert (
+        str(exc_info.value) == "root: Key 'number' not in schema: "
+        '{ "number = { hidden = true }" = [ "union", "float", "integer" ], '
+        'price = "ref = { ref = number }" }'
+    )
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        toml_schema.loads("""
+            "number = { hidden = true }" = [ "union", "float", "integer" ]
+            number = "integer"
+        """)
+    assert (
+        str(exc_info.value) == "root: Duplicate keys in table: "
+        """['"number = { hidden = true }"', 'number']"""
+    )
+
+
 def test_key_pattern() -> None:
     """Test use of wildcard key patterns."""
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -1063,11 +1129,16 @@ def test_key_pattern() -> None:
     schema.validate(
         {
             "pattern": 3,
-            "qwerty": 3.14,
             "QWERTY": True,
             "Qwerty": "hello",
+            "qwerty": 3.14,
         }
     )
+
+    # Patterns are processed in the order they are specified:
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"qwerty": "hello"})
+    assert str(exc_info.value) == "'qwerty': Value hello is not: \"float\""
 
     # Patterns can be used to specify keys with "=" in them:
     schema = toml_schema.loads("""
@@ -1104,6 +1175,126 @@ def test_key_pattern() -> None:
             "string:mango": "mango",
             "string:pineapple": "pineapple",
         }
+    )
+
+
+def test_reference() -> None:
+    """Test references."""
+    schema = toml_schema.loads("""
+        [user]
+        name = "string"
+        full-name = "ref = 'user.name'"
+    """)
+    schema.validate({"user": {"name": "John", "full-name": "John Smith"}})
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"user": {"name": "John", "full-name": True}})
+    assert str(exc_info.value) == "'user.full-name': Value true is not: \"string\""
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        toml_schema.loads("""
+            [user]
+            name = "string"
+            full-name = "ref = 'user.last-name'"
+        """)
+    assert (
+        str(exc_info.value) == "'user.full-name': Reference to non-existing key: "
+        "user.last-name"
+    )
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        toml_schema.loads("""
+            [user]
+            name = "string"
+            full-name = "ref = 'user.name.first'"
+        """)
+    assert (
+        str(exc_info.value) == "'user.full-name': Reference to non-existing sub-key: "
+        "user.name.first"
+    )
+
+    # References can be recursive:
+    schema = toml_schema.loads("""
+        [user]
+        name = [
+            "union",
+            "string",
+            "ref = 'user'",
+        ]
+    """)
+    schema.validate({"user": {"name": {"name": {"name": "tom"}}}})
+
+    # But direct self-reference does not make much sense:
+    schema = toml_schema.loads("""
+            name = [
+                "union",
+                "string",
+                "ref = 'name'",
+            ]
+        """)
+    schema.validate({"name": "tom"})
+    with pytest.raises(RecursionError) as rec_err:
+        schema.validate({"name": True})
+    assert str(rec_err.value).startswith("maximum recursion depth exceeded")
+
+    # Example from README:
+    schema = toml_schema.loads("""
+        ["def = { hidden = true }"]
+        number = [ "union", "float", "integer" ]
+        complex = [
+            "union",
+            "ref = 'def.number'",
+            { real = "ref = 'def.number'", imag = "ref = 'def.number'" },
+        ]
+
+        [quantum]
+        wave-function = "ref = 'def.complex'"
+    """)
+    schema.validate({"quantum": {"wave-function": {"real": 0, "imag": 1}}})
+
+
+def test_file_reference(tmp_path: pathlib.Path) -> None:
+    """Test reference to a file."""
+    user_schema_file = tmp_path / "user.toml-schema"
+    main_schema_file = tmp_path / "main.toml-schema"
+    with user_schema_file.open("w") as schema_file:
+        schema_file.write('name = "string"')
+    with main_schema_file.open("w") as schema_file:
+        schema_file.write("user = \"file = 'user.toml-schema'\"")
+    schema = toml_schema.from_file(str(main_schema_file))
+    schema.validate({"user": {"name": "John"}})
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        toml_schema.loads("user = \"file = 'user.toml-schema'\"")
+    assert (
+        str(exc_info.value)
+        == "'user': Schema has file reference. Must specify TOML filename."
+    )
+
+    with user_schema_file.open("w") as schema_file:
+        schema_file.write('name "string"')
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema = toml_schema.from_file(str(main_schema_file))
+    assert (
+        str(exc_info.value) == "'user': Error reading 'user.toml-schema': "
+        "Expected '=' after a key in a key/value pair (at line 1, column 6)"
+    )
+
+    with user_schema_file.open("w") as schema_file:
+        schema_file.write('name = "stringly"')
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema = toml_schema.from_file(str(main_schema_file))
+    assert (
+        str(exc_info.value) == "'user': Error reading 'user.toml-schema': "
+        "'name': 'stringly' is not a valid keyword type."
+    )
+
+    with main_schema_file.open("w") as schema_file:
+        schema_file.write("user = \"file = 'no-such-file.toml-schema'\"")
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema = toml_schema.from_file(str(main_schema_file))
+    assert (
+        str(exc_info.value) == "'user': Error reading 'no-such-file.toml-schema': "
+        f"[Errno 2] No such file or directory: '{tmp_path}/no-such-file.toml-schema'"
     )
 
 

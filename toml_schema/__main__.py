@@ -11,7 +11,7 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib
 
-from . import SchemaError, TOMLValue, __version__, load
+from . import SchemaError, TOMLValue, __version__, from_file
 
 
 class Settings:
@@ -34,13 +34,12 @@ def main() -> None:
     """toml-schema main entry-point."""
     try:
         settings = Settings()
-        with pathlib.Path(settings.schema_file).open("rb") as schema_file:
-            schema_table = load(schema_file)
+        schema_table = from_file(settings.schema_file)
         with pathlib.Path(settings.toml_file).open("rb") as toml_file:
             toml_table: dict[str, TOMLValue] = tomllib.load(toml_file)
         schema_table.validate(toml_table)
         print("TOML schema validated.")
-    except (SchemaError, FileNotFoundError) as ex:
+    except (SchemaError, OSError) as ex:
         print(str(ex), file=sys.stderr)
         raise SystemExit(1) from ex
 

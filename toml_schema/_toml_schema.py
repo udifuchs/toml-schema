@@ -4,6 +4,7 @@
 
 import dataclasses
 import datetime
+import pathlib
 import re
 import sys
 from collections.abc import Mapping, Sequence
@@ -86,21 +87,26 @@ BARE_KEY_CHARS = frozenset(
 # fmt: on
 
 
-def _name_required() -> str:
-    """Make sure that SchemaKey.name is always specified.
+def _str_field_required() -> str:
+    """Make sure that dataclass field is always specified.
 
     Once python 3.9 support is dropped, SchemaElement._address can be marked as kw_only,
     making this function redundant.
     """
-    raise ValueError("Field 'name' required.")  # pragma: no cover
+    raise ValueError("Required field missing.")  # pragma: no cover
+
+
+def _list_str_field_required() -> list[str]:
+    raise ValueError("Required field missing.")  # pragma: no cover
 
 
 @dataclasses.dataclass(frozen=True)
 class SchemaKey(SchemaElement):
     """Schema for table keys."""
 
-    name: str = dataclasses.field(default_factory=_name_required)
+    name: str = dataclasses.field(default_factory=_str_field_required)
     required: bool = False
+    hidden: bool = False
     pattern: Optional[str] = None
     _regex: Optional[re.Pattern[str]] = dataclasses.field(init=False, default=None)
 
@@ -130,6 +136,9 @@ class SchemaKey(SchemaElement):
         if self.required:
             key_str = self._toml_key_name().replace('"', '\\"')
             return f'"{key_str} = {{ required = {_format_attr(self.required)} }}"'
+        if self.hidden:
+            key_str = self._toml_key_name().replace('"', '\\"')
+            return f'"{key_str} = {{ hidden = {_format_attr(self.hidden)} }}"'
         if self.pattern is not None:
             return f'''"pattern = '{self.pattern}'"'''
         return self._toml_key_name()
@@ -150,7 +159,6 @@ class SchemaKey(SchemaElement):
         return f'"{escape_quotes}"'
 
 
-@dataclasses.dataclass(frozen=True)
 class String(SchemaElement):
     """String schema type."""
 
@@ -160,16 +168,11 @@ class String(SchemaElement):
             raise SchemaError(f"Value {_format_attr(value)} is not: {self}", context)
 
 
-def _enum_required() -> list[str]:
-    """Make sure that Pattern.pattern is always specified."""
-    raise ValueError("Field 'enum' required.")  # pragma: no cover
-
-
 @dataclasses.dataclass(frozen=True)
 class Enum(SchemaElement):
     """Enumerated string schema type."""
 
-    enum: list[str] = dataclasses.field(default_factory=_enum_required)
+    enum: list[str] = dataclasses.field(default_factory=_list_str_field_required)
 
     def __post_init__(self) -> None:
         if any(
@@ -188,16 +191,11 @@ class Enum(SchemaElement):
             raise SchemaError(f"'{value}' not in {self.enum}", context)
 
 
-def _pattern_required() -> str:
-    """Make sure that Pattern.pattern is always specified."""
-    raise ValueError("Field 'pattern' required.")  # pragma: no cover
-
-
 @dataclasses.dataclass(frozen=True)
 class Pattern(SchemaElement):
     """Regular expression pattern for string schema type."""
 
-    pattern: str = dataclasses.field(default_factory=_pattern_required)
+    pattern: str = dataclasses.field(default_factory=_str_field_required)
     _regex: re.Pattern[str] = dataclasses.field(init=False)
 
     def __post_init__(self) -> None:
@@ -263,7 +261,6 @@ class Boolean(SchemaElement):
             raise SchemaError(f"Value {_format_attr(value)} is not: {self}", context)
 
 
-@dataclasses.dataclass(frozen=True)
 class OffsetDateTime(SchemaElement):
     """Offset date-time schema type."""
 
@@ -276,7 +273,6 @@ class OffsetDateTime(SchemaElement):
             raise SchemaError(f"'offset-date-time' has no offset: {value}", context)
 
 
-@dataclasses.dataclass(frozen=True)
 class LocalDateTime(SchemaElement):
     """Local date-time schema type."""
 
@@ -326,10 +322,41 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
         schema_table: Mapping[SchemaKey, SchemaElement],
         /,
         *,
+        toml_filename: Optional[str] = None,
+        is_root: bool,
         _address: str = "",
     ) -> None:
         SchemaElement.__init__(self, _address=_address)
         dict.__init__(self, schema_table)
+
+        def set_root_in_element(schema_value: SchemaElement, root: Table) -> None:
+            if isinstance(schema_value, Ref):
+                schema_value.set_root(root)
+            if isinstance(schema_value, File):
+                schema_value.set_file(toml_filename)
+            if isinstance(schema_value, Table):
+                set_root_in_table(schema_value, root)
+            if isinstance(schema_value, Array):
+                set_root_in_array(schema_value, root)
+            if isinstance(schema_value, UnionContainer):
+                set_root_in_union(schema_value, root)
+
+        def set_root_in_table(table: Table, root: Table) -> None:
+            for schema_value in table.values():
+                set_root_in_element(schema_value, root)
+
+        def set_root_in_array(array: Array, root: Table) -> None:
+            for schema_value in array:
+                set_root_in_element(schema_value, root)
+
+        def set_root_in_union(union: UnionContainer, root: Table) -> None:
+            for schema_value in union:
+                set_root_in_element(schema_value, root)
+
+        if is_root:
+            set_root_in_table(self, self)
+        elif toml_filename is not None:  # pragma: no cover
+            raise RuntimeError("toml_filename should only be specified if is_root.")
 
         key_count = {
             key_1: sum(
@@ -355,17 +382,25 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
             return False
         return SchemaElement.__eq__(self, other) and dict.__eq__(self, other)
 
+    def get_sub_schema(
+        self, key: str, *, get_hidden: bool = False
+    ) -> Optional[SchemaElement]:
+        """Get the schema for the specified key."""
+        for schema_key, schema_value in self.items():
+            if not get_hidden and schema_key.hidden:
+                continue
+            if key == schema_key.name and schema_key.pattern is None:
+                return schema_value
+        return None
+
     def validate(self, value: TOMLValue, /, *, context: str = "") -> None:
         """Validate table and its elements."""
         if type(value) is not dict:
             raise SchemaError(f"Value {_format_attr(value)} is not: {self}", context)
         for key, element in value.items():
             # Check if key is in schema:
-            for schema_key, schema_value in self.items():
-                if key == schema_key.name and schema_key.pattern is None:
-                    schema = schema_value
-                    break
-            else:
+            schema = self.get_sub_schema(key)
+            if schema is None:
                 # Check if key matches any wildcard schema key:
                 for schema_key, schema_value in self.items():
                     if schema_key.wildcard_match(key):
@@ -380,6 +415,69 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
         for schema_key in self:
             if schema_key.required and schema_key.name not in value:
                 raise SchemaError(f"Missing required key: {schema_key.name}", context)
+
+
+@dataclasses.dataclass(frozen=True)
+class Ref(SchemaElement):
+    """Schema for referencing other schema keys."""
+
+    ref: str = dataclasses.field(default_factory=_str_field_required)
+    _ref_schema: Optional[SchemaElement] = None  # dataclasses.field(init=False)
+
+    def set_root(self, root: Table) -> None:
+        schema: SchemaElement = root
+        base_key = ""
+        for key in self.ref.split("."):
+            base_key = key if base_key == "" else f"{base_key}.{key}"
+            if not isinstance(schema, Table):
+                raise SchemaError(
+                    f"Reference to non-existing sub-key: {base_key}", self._address
+                )
+            next_schema = schema.get_sub_schema(key, get_hidden=True)
+            if next_schema is None:
+                raise SchemaError(
+                    f"Reference to non-existing key: {base_key}", self._address
+                )
+            schema = next_schema
+        object.__setattr__(self, "_ref_schema", schema)
+
+    def validate(self, value: TOMLValue, /, *, context: str) -> None:
+        """Validate value with the reference type."""
+        if self._ref_schema is None:  # pragma: no cover
+            # If this exception is reached there is a bug in Table's set_root:
+            raise RuntimeError(f"'{self._address}': _ref_schema is None.")
+        self._ref_schema.validate(value, context=context)
+
+
+@dataclasses.dataclass(frozen=True)
+class File(SchemaElement):
+    """Schema for referencing other schema files."""
+
+    file: str = dataclasses.field(default_factory=_str_field_required)
+    _ref_schema: Optional[SchemaElement] = None  # dataclasses.field(init=False)
+
+    def set_file(self, toml_filename: Optional[str]) -> None:
+        if toml_filename is None:
+            raise SchemaError(
+                "Schema has file reference. Must specify TOML filename.", self._address
+            )
+        toml_path = pathlib.Path(toml_filename).parent
+        try:
+            schema = from_file(str(toml_path / self.file))
+        except (SchemaError, tomllib.TOMLDecodeError, OSError) as ex:
+            raise SchemaError(
+                f"Error reading '{self.file}': {ex}", self._address
+            ) from None
+        object.__setattr__(self, "_ref_schema", schema)
+
+    def validate(self, value: TOMLValue, /, *, context: str) -> None:
+        """Validate value with the reference schema file."""
+        if self._ref_schema is None:
+            # If this exception is reached there is a bug in Table's set_root:
+            raise RuntimeError(
+                f"'{self._address}': _ref_schema is None."
+            )  # pragma: no cover
+        self._ref_schema.validate(value, context=context)
 
 
 class Array(SchemaElement, list[SchemaElement]):
@@ -471,8 +569,7 @@ class UnionContainer(SchemaElement, list[SchemaElement]):
 
 
 def _create_key(key: str, _address: str) -> SchemaKey:
-    if "=" not in key:
-        # Key is certainly not a TOML string.
+    if "=" not in key:  # Key is certainly not a TOML string.
         return SchemaKey(name=key, _address=_address)
 
     try:
@@ -555,7 +652,7 @@ def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
 def _create_schema(toml_value: TOMLValue, _address: str) -> SchemaElement:
     if isinstance(toml_value, dict):
         # Create schema table:
-        return from_toml_table(toml_value, _address=_address)
+        return from_toml_table(toml_value, is_root=False, _address=_address)
 
     if isinstance(toml_value, list):
         # Create array or union schema:
@@ -577,7 +674,12 @@ def _create_schema(toml_value: TOMLValue, _address: str) -> SchemaElement:
 
 
 def from_toml_table(
-    toml_table: dict[str, TOMLValue], /, *, _address: str = ""
+    toml_table: dict[str, TOMLValue],
+    /,
+    *,
+    toml_filename: Optional[str] = None,
+    is_root: bool = True,
+    _address: str = "",
 ) -> Table:
     """Create a schema table from a TOML table."""
     base_address = "" if _address == "" else f"{_address}."
@@ -587,7 +689,9 @@ def from_toml_table(
         )
         for key, value in toml_table.items()
     }
-    return Table(schema_table, _address=_address)
+    return Table(
+        schema_table, toml_filename=toml_filename, is_root=is_root, _address=_address
+    )
 
 
 TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
@@ -603,25 +707,36 @@ TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
     "time": {},
     "any-value": {},
     "union": {},
+    "ref": "string",
+    "file": "string",
 }
 
 TYPES_SCHEMA = from_toml_table(TYPES_SCHEMA_TABLE)
 
 KEY_SCHEMA_TABLE: dict[str, TOMLValue] = {
     "pattern": "string",
-    "*": {"required": "boolean"},
+    "*": [
+        "union",
+        {"required": "boolean"},
+        {"hidden": "boolean"},
+    ],
 }
 
 KEY_SCHEMA = from_toml_table(KEY_SCHEMA_TABLE)
 
 
-def load(toml_file: BinaryIO, /) -> Table:
+def from_file(toml_filename: str) -> Table:
+    with pathlib.Path(toml_filename).open("rb") as toml_file:
+        return load(toml_file, toml_filename=toml_filename)
+
+
+def load(toml_file: BinaryIO, /, *, toml_filename: Optional[str] = None) -> Table:
     """Load TOML schema from a binary I/O stream."""
     toml_table: dict[str, TOMLValue] = tomllib.load(toml_file)
-    return from_toml_table(toml_table)
+    return from_toml_table(toml_table, toml_filename=toml_filename)
 
 
-def loads(toml_str: str, /) -> Table:
+def loads(toml_str: str, /, *, toml_filename: Optional[str] = None) -> Table:
     """Load TOML schema from a string."""
     toml_table: dict[str, TOMLValue] = tomllib.loads(toml_str)
-    return from_toml_table(toml_table)
+    return from_toml_table(toml_table, toml_filename=toml_filename)

@@ -2,7 +2,15 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2025 Udi Fuchs
 
-from ._toml_schema import SchemaError, Table, TOMLValue, from_toml_table, load, loads
+from ._toml_schema import (
+    SchemaError,
+    Table,
+    TOMLValue,
+    from_file,
+    from_toml_table,
+    load,
+    loads,
+)
 
 __version__ = "0.1-dev"
 
@@ -11,6 +19,7 @@ __all__ = (
     "TOMLValue",
     "Table",
     "__version__",
+    "from_file",
     "from_toml_table",
     "load",
     "loads",
