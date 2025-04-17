@@ -177,6 +177,9 @@ def get_toml_type(  # noqa: C901, PLR0912
     if json_type == "array":
         return get_toml_array(key, json_object)
 
+    if json_type == "number":
+        json_type = "float"
+
     options = []
     minimum: float | int | None = None
     maximum: float | int | None = None

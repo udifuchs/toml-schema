@@ -14,7 +14,7 @@
           "anyOf": [
             { "type": "string" },
             { "type": "integer" },
-            { "type": "float" },
+            { "type": "number" },
             { "type": "boolean" },
             { "type": "null" }
           ]
@@ -53,7 +53,7 @@
             { "type": "array" },
             { "type": "object" },
             { "type": "boolean" },
-            { "type": "float" },
+            { "type": "number" },
             { "type": "null" }
           ]
         }
