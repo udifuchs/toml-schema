@@ -362,7 +362,9 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
             key_1: sum(
                 1
                 for key_2 in self
-                if key_1.name == key_2.name and key_1.pattern == key_2.pattern
+                if key_1.name == key_2.name
+                and key_1.pattern == key_2.pattern
+                and key_1.hidden == key_2.hidden
             )
             for key_1 in self
         }
@@ -386,6 +388,14 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
         self, key: str, *, get_hidden: bool = False
     ) -> Optional[SchemaElement]:
         """Get the schema for the specified key."""
+        if get_hidden:  # Hidden keys are retrieved before visible ones.
+            for schema_key, schema_value in self.items():
+                if (
+                    schema_key.hidden
+                    and key == schema_key.name
+                    and schema_key.pattern is None
+                ):
+                    return schema_value
         for schema_key, schema_value in self.items():
             if not get_hidden and schema_key.hidden:
                 continue

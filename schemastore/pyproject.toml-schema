@@ -48,7 +48,7 @@ dynamic = [ """enum = [
 ]""" ]
 
 [project.urls]
-"*" = "string"
+"*" = "ref = 'format.uri'"
 
 [project.scripts]
 "*" = "string"
@@ -102,9 +102,15 @@ uv = "file = 'uv.toml-schema'"
 
 ["defs = { hidden = true }".projectAuthor]
 name = "string"
-email = "string"
+email = "ref = 'format.email'"
 
 ["defs = { hidden = true }".BuildSystem]
 "requires = { required = true }" = [ "string" ]
 build-backend = "string"
 backend-path = [ "string" ]
+
+["format = { hidden = true }"]
+
+uri = "pattern = '^\\w+:(\\/?\\/?)[^\\s]+\\Z'"
+
+email = "pattern = '^(?!.*\\.\\..*@)[^@.][^@]*(?<!\\.)@[^@]+\\.[^@]+\\Z'"

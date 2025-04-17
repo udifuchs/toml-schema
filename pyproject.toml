@@ -32,13 +32,17 @@ py-modules = [ "toml_schema" ]
 version = { attr = "toml_schema.__version__" }
 
 [tool.mypy]
-files = [ "toml_schema", "tests" ]
+files = [ "toml_schema", "tests", "tools" ]
 strict = true
 disallow_any_expr = true
 python_version = "3.11"
 
+[[tool.mypy.overrides]]
+module="tools.*"
+disallow_any_expr = false
+
 [tool.ruff]
-include = [ "toml_schema/*.py", "tests/*.py" ]
+include = [ "toml_schema/*.py", "tests/*.py", "tools/*.py" ]
 
 [tool.ruff.lint]
 select = [ "ALL" ]
@@ -70,4 +74,12 @@ pydocstyle.convention = "google"
 "tests/*.py" = [
     "S101",  # Use of 'assert' detected
     "INP001", # File `tests/test_schema.py` is part of an implicit namespace package.
+]
+
+"tools/*.py" = [
+    "D103",  # Missing docstring in public function
+    "D104",  # Missing docstring in public package
+    "S101",  # Use of `assert` detected
+    "T201",  # `print` found
+    "TRY002",  # Create your own exception
 ]

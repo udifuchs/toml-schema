@@ -1,12 +1,5 @@
 """Convert a JSON schema to a TOML schema."""
 
-# ruff: noqa: TRY002
-# ruff: noqa: T201
-# ruff: noqa: S101
-# ruff: noqa: D103
-# ruff: noqa: TD002
-# ruff: noqa: TD003
-
 from __future__ import annotations
 
 import argparse
@@ -73,6 +66,12 @@ JSON_TODO = (
     "additionalItems",  # For array
 )
 
+# Regex patterns taken from:
+# https://github.com/horejsek/python-fastjsonschema/blob/master/fastjsonschema/draft04.py
+EMAIL_PATTERN = r"^(?!.*\.\..*@)[^@.][^@]*(?<!\.)@[^@]+\.[^@]+\Z"
+URI_PATTERN = r"^\w+:(\/?\/?)[^\s]+\Z"
+FORMAT: dict[str, dict[str, str]] = {}
+
 
 def get_toml_element(  # noqa: C901, PLR0911, PLR0912
     key: str, json_object: dict[str, Any], *, inline: bool
@@ -80,7 +79,7 @@ def get_toml_element(  # noqa: C901, PLR0911, PLR0912
     debug(f"get {key}")
     for ignore in JSON_IGNORE:
         if ignore in json_object:
-            del json_object[ignore]
+            json_object.pop(ignore)
     for ignore in JSON_TODO:
         if ignore in json_object:
             value = json_object.pop(ignore)
@@ -135,7 +134,7 @@ def get_toml_element(  # noqa: C901, PLR0911, PLR0912
                 toml_key = ".".join(keys)
                 return f'''"ref = '{toml_key}'"'''
         if ref.startswith(global_uri_base):
-            json_ref = ref[len(global_uri_base) + 1:]
+            json_ref = ref[len(global_uri_base) + 1 :]
             global_file_list.append(json_ref)
             debug(f"{key}: Queued file for loading: {json_ref}")
             if WGET:
@@ -151,7 +150,7 @@ def get_toml_element(  # noqa: C901, PLR0911, PLR0912
     return "{ }"
 
 
-def get_toml_type(  # noqa: C901, PLR0912
+def get_toml_type(  # noqa: C901, PLR0911, PLR0912, PLR0915
     key: str, json_object: dict[str, Any], *, inline: bool
 ) -> str | None:
     json_type = json_object.pop("type")
@@ -164,7 +163,7 @@ def get_toml_type(  # noqa: C901, PLR0912
         if len(json_type) > 1:
             union_str = ", ".join(f'"{typ}"' for typ in json_type)
             return f'[ "union", {union_str} ]'
-        if len(json_type) < 1 :
+        if len(json_type) < 1:
             raise Exception(f"{key}: JSON type array is empty: {json_type}")
         json_type = json_type[0]
 
@@ -184,24 +183,38 @@ def get_toml_type(  # noqa: C901, PLR0912
     minimum: float | int | None = None
     maximum: float | int | None = None
     if "minimum" in json_object:
-        minimum = json_object.pop("minimum")
-        if json_type == "integer" and not isinstance(minimum, int):
-            info(f"{key}: Minimum with non-integer value: {minimum}")
-            minimum = int(minimum)
+        json_minimum = json_object.pop("minimum")
+        if isinstance(json_minimum, (int, float)):
+            minimum = json_minimum
+            if json_type == "integer" and not isinstance(minimum, int):
+                info(f"{key}: Minimum with non-integer value: {minimum}")
+                minimum = int(minimum)
+        else:
+            raise Exception(f"{key}: Minimum with non-numeric value: {json_minimum}")
     if "maximum" in json_object:
-        maximum = json_object.pop("maximum")
-        if json_type == "integer" and not isinstance(maximum, int):
-            info(f"{key}: Maximum with non-integer value: {maximum}")
-            maximum = int(maximum)
+        json_maximum = json_object.pop("maximum")
+        if isinstance(json_maximum, (int, float)):
+            maximum = json_maximum
+            if json_type == "integer" and not isinstance(maximum, int):
+                info(f"{key}: Maximum with non-integer value: {maximum}")
+                maximum = int(maximum)
+        else:
+            raise Exception(f"{key}: Maximum with non-numeric value: {json_maximum}")
     if "format" in json_object:
-        # The format value is not part of the json schema specification.
         json_format = json_object.pop("format")
+        if json_format == "email":
+            FORMAT[global_filename]["email"] = f'''"pattern = {EMAIL_PATTERN!r}"'''
+            return '''"ref = 'format.email'"'''
+        if json_format == "uri":
+            FORMAT[global_filename]["uri"] = f'''"pattern = {URI_PATTERN!r}"'''
+            return '''"ref = 'format.uri'"'''
+        # The format value is not part of the json schema specification.
         if json_format == "uint8":
             minimum = 0 if minimum is None else max(minimum, 0)
-            maximum = 0xff if maximum is None else min(maximum, 0xff)
+            maximum = 0xFF if maximum is None else min(maximum, 0xFF)
         elif json_format == "uint16":
             minimum = 0 if minimum is None else max(minimum, 0)
-            maximum = 0xffff if maximum is None else min(maximum, 0xffff)
+            maximum = 0xFFFF if maximum is None else min(maximum, 0xFFFF)
         elif json_format == "uint":
             minimum = 0 if minimum is None else max(minimum, 0)
         else:
@@ -276,7 +289,7 @@ def get_toml_table(  # noqa: C901, PLR0912
     )
 
 
-def get_toml_table_from_properties(  # noqa: C901, PLR0912, PLR0913
+def get_toml_table_from_properties(  # noqa: C901, PLR0912, PLR0913, PLR0915
     key: str,
     json_properties: dict[str, Any] | None,
     json_pattern_properties: dict[str, Any] | None,
@@ -288,6 +301,7 @@ def get_toml_table_from_properties(  # noqa: C901, PLR0912, PLR0913
     if inline:
         inline_types = {}
     elif key != "":
+        assert global_toml_file is not None
         global_toml_file.write(f"\n[{key}]\n")
 
     def is_table(json_object: dict[str, Any]) -> bool:
@@ -311,6 +325,7 @@ def get_toml_table_from_properties(  # noqa: C901, PLR0912, PLR0913
             if inline:
                 inline_types[sub_key_str] = json_type
             else:
+                assert global_toml_file is not None
                 global_toml_file.write(f"{sub_key_str} = {json_type}\n")
         if json_object != {}:
             raise Exception(f"Extra keys: {key}.{sub_key}: {json_object}")
@@ -348,11 +363,11 @@ def get_toml_table_from_properties(  # noqa: C901, PLR0912, PLR0913
     if json_defs is not None:
         get_toml_table_from_properties(
             '"defs = { hidden = true }"',
-            json_properties = json_defs,
-            json_pattern_properties = None,
-            json_defs = None,
+            json_properties=json_defs,
+            json_pattern_properties=None,
+            json_defs=None,
             inline=False,
-            required_list=[]
+            required_list=[],
         )
 
     if len(required_list) != 0:
@@ -396,9 +411,9 @@ def get_toml_union(  # noqa: C901, PLR0912
             elif len(set(union_types)) == 1 and union_types[0] == "string":
                 try:
                     union_enums = [
-                        enum
-                        for elem in union_list
-                        for enum in elem["enum"]
+                        enum_value
+                        for element in union_list
+                        for enum_value in element["enum"]
                     ]
                     if len(union_enums) == len(set(union_enums)):
                         # All types are enum strings with different values:
@@ -430,6 +445,7 @@ def get_toml_union(  # noqa: C901, PLR0912
             raise Exception(f"Extra keys: {key}[{i}]: {json_item}")
     if len(union_types) == 1:
         info(f"{key}: Union with length 1: {union_types}")
+        assert isinstance(union_types[0], str)
         return union_types[0]
     union_str = ",\n    ".join(union_types)
     return f'[\n    "union",\n    {union_str},\n]'
@@ -456,10 +472,10 @@ global_toml_file = None
 global_file_list: list[str] = []
 
 
-def convert(json_filename: str) -> str:
-
+def convert(json_filename: str) -> pathlib.Path:
     global global_filename  # noqa: PLW0603
     global_filename = json_filename
+    FORMAT[global_filename] = {}
 
     with pathlib.Path(json_filename).open("r") as json_file:
         json_object = json.load(json_file)
@@ -477,11 +493,15 @@ def convert(json_filename: str) -> str:
             raise Exception(f"Extra keys: {json_object}")
         assert json_type is None
 
+        if len(FORMAT[global_filename]) > 0:
+            global_toml_file.write('\n["format = { hidden = true }"]\n')
+            for key, format_value in FORMAT[global_filename].items():
+                global_toml_file.write(f"\n{key} = {format_value}\n")
+
     return toml_filename
 
 
 def main() -> None:
-
     os.chdir("schemastore")
 
     parser = argparse.ArgumentParser()
@@ -494,8 +514,8 @@ def main() -> None:
     json_id = "https://json.schemastore.org/pyproject.json"
 
     global global_uri_base  # noqa: PLW0603
-    global_uri_base = json_id[:json_id.rfind("/")]
-    json_filename = json_id[len(global_uri_base) + 1:]
+    global_uri_base = json_id[: json_id.rfind("/")]
+    json_filename = json_id[len(global_uri_base) + 1 :]
 
     if WGET:
         subprocess.run(  # noqa: PLW1510,S603
@@ -507,7 +527,7 @@ def main() -> None:
         json_file = global_file_list.pop(0)
         convert(json_file)
 
-    toml_schema.from_file(toml_filename)
+    toml_schema.from_file(str(toml_filename))
 
 
 if __name__ == "__main__":

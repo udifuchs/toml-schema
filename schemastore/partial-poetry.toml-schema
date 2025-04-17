@@ -3,9 +3,9 @@ name = "ref = 'defs.poetry-name'"
 version = "ref = 'defs.poetry-version'"
 description = "ref = 'defs.poetry-description'"
 keywords = [ "string" ]
-homepage = "string"
-repository = "string"
-documentation = "string"
+homepage = "ref = 'format.uri'"
+repository = "ref = 'format.uri'"
+documentation = "ref = 'format.uri'"
 license = "string"
 authors = "ref = 'defs.poetry-authors'"
 maintainers = "ref = 'defs.poetry-maintainers'"
@@ -23,7 +23,7 @@ include = [ [
 ] ]
 exclude = [ "any-value" ]
 build = "ref = 'defs.poetry-build-section'"
-source = [ { "name = { required = true }" = "string", url = "string", priority = """enum = [
+source = [ { "name = { required = true }" = "string", url = "ref = 'format.uri'", priority = """enum = [
     "default",
     "primary",
     "secondary",
@@ -145,7 +145,7 @@ source = "string"
 ["defs = { hidden = true }".poetry-git-dependency]
 "git = { required = true }" = [
     "union",
-    "string",
+    "ref = 'format.uri'",
     """
     pattern = '^([A-Za-z0-9\\-]+@|https://|http://)[A-Za-z][A-Za-z0-9+.-]*(:|/)[A-Za-z0-9\\-\\.]+(/[A-Za-z0-9\\-_\\.]+)+\\.git$'
 """,
@@ -203,3 +203,7 @@ extras = [ "string" ]
 ["defs = { hidden = true }".poetry-build-config]
 generate-setup-file = "boolean"
 script = "ref = 'defs.poetry-build-script'"
+
+["format = { hidden = true }"]
+
+uri = "pattern = '^\\w+:(\\/?\\/?)[^\\s]+\\Z'"

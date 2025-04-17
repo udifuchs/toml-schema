@@ -1092,14 +1092,19 @@ def test_hidden_key() -> None:
         'price = "ref = { ref = number }" }'
     )
 
+    # Hidden keys can have the same name as visible keys:
+    schema = toml_schema.loads("""
+        number = "boolean"
+        "number = { hidden = true }" = [ "union", "float", "integer" ]
+        size = "ref = 'number'"
+    """)
+    # Hidden keys are retrieved before visible keys:
+    schema.validate({"number": True, "size": 3})
     with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads("""
-            "number = { hidden = true }" = [ "union", "float", "integer" ]
-            number = "integer"
-        """)
+        schema.validate({"size": True})
     assert (
-        str(exc_info.value) == "root: Duplicate keys in table: "
-        """['"number = { hidden = true }"', 'number']"""
+        str(exc_info.value) == "'size': Value True not in: "
+        '[ "union", "float", "integer" ]'
     )
 
 

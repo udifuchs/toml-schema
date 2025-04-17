@@ -43,7 +43,7 @@ package = "boolean"
 pip = "ref = 'defs.PipOptions'"
 prerelease = "ref = 'defs.PrereleaseMode'"
 preview = "boolean"
-publish-url = "string"
+publish-url = "ref = 'format.uri'"
 pypy-install-mirror = "string"
 python-downloads = "ref = 'defs.PythonDownloads'"
 python-install-mirror = "string"
@@ -209,8 +209,8 @@ SchemaConflictSet = [ "ref = 'defs.SchemaConflictItem'" ]
 SchemaConflicts = [ "ref = 'defs.SchemaConflictSet'" ]
 Source = [
     "union",
-    { branch = "string", extra = "ref = 'defs.ExtraName'", "git = { required = true }" = "string", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", rev = "string", subdirectory = "ref = 'defs.String'", tag = "string" },
-    { extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", subdirectory = "ref = 'defs.String'", "url = { required = true }" = "string" },
+    { branch = "string", extra = "ref = 'defs.ExtraName'", "git = { required = true }" = "ref = 'format.uri'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", rev = "string", subdirectory = "ref = 'defs.String'", tag = "string" },
+    { extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", subdirectory = "ref = 'defs.String'", "url = { required = true }" = "ref = 'format.uri'" },
     { editable = "boolean", extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", "path = { required = true }" = "ref = 'defs.String'" },
     { extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", "index = { required = true }" = "ref = 'defs.IndexName'", marker = "ref = 'defs.MarkerTree'" },
     { extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", "workspace = { required = true }" = "boolean" },
@@ -359,7 +359,7 @@ tags = "boolean"
 default = "boolean"
 explicit = "boolean"
 name = "ref = 'defs.IndexName'"
-publish-url = "string"
+publish-url = "ref = 'format.uri'"
 "url = { required = true }" = "ref = 'defs.IndexUrl'"
 "*" = "any-value"
 
@@ -439,3 +439,7 @@ version = "string"
 ["defs = { hidden = true }".ToolUvWorkspace]
 exclude = [ "ref = 'defs.String'" ]
 members = [ "ref = 'defs.String'" ]
+
+["format = { hidden = true }"]
+
+uri = "pattern = '^\\w+:(\\/?\\/?)[^\\s]+\\Z'"
