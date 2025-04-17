@@ -1,0 +1,2 @@
+'tool.poetry.description': 'Some multi-
+line string' does not match pattern: ^[^\n]*$

@@ -1,0 +1,1 @@
+'dependency-groups.bar[0]': Value {'set-phasers-to': 'stun'} not in union.

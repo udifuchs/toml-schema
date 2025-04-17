@@ -1,0 +1,1 @@
+'tool.ruff.lint.extend-select[0]': 'NOTACODE' not in enum.

@@ -1,0 +1,1 @@
+'tool.setuptools.ext-modules[0].sources': Value hello.c is not: [ "string" ]

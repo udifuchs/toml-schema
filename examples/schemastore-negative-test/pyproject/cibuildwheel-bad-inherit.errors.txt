@@ -1,0 +1,1 @@
+'tool.cibuildwheel.overrides[0].inherit': Key 'not-a-setting' not in schema.

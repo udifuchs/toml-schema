@@ -1,0 +1,1 @@
+'tool.setuptools.ext-modules[0]': Key 'non-existing-field' not in schema.

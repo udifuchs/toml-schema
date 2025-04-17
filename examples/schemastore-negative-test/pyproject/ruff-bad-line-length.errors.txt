@@ -1,0 +1,1 @@
+'tool.ruff.line-length': Value 79 is not: "integer = { min = 1, max = 320 }"

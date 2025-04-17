@@ -1,0 +1,1 @@
+'tool.cibuildwheel': Key 'no-a-read-option' not in schema.

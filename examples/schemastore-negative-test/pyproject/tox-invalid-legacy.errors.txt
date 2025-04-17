@@ -1,0 +1,1 @@
+'tool.tox.legacy_tox_ini': Value ['min_version = 4.0'] is not: "string"

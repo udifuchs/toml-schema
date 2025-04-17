@@ -188,7 +188,10 @@ class Enum(SchemaElement):
         if type(value) is not str:
             raise SchemaError(f"Value {_format_attr(value)} is not a string.", context)
         if value not in self.enum:
-            raise SchemaError(f"'{value}' not in {self.enum}", context)
+            if len(str(self.enum)) > 80:
+                # No point showing enum if it is very long:
+                raise SchemaError(f"'{value}' not in enum.", context)
+            raise SchemaError(f"'{value}' not in: {self.enum}", context)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -417,6 +420,9 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
                         schema = schema_value
                         break
                 else:
+                    if len(str(self)) > 80:
+                        # No point showing schema if it is very long:
+                        raise SchemaError(f"Key '{key}' not in schema.", context)
                     raise SchemaError(f"Key '{key}' not in schema: {self}", context)
 
             key_context = key if context == "" else f"{context}.{key}"
@@ -575,6 +581,9 @@ class UnionContainer(SchemaElement, list[SchemaElement]):
                 pass
             else:
                 return
+        if len(str(self)) > 80:
+            # No point showing union if it is very long:
+            raise SchemaError(f"Value {value} not in union.", context)
         raise SchemaError(f"Value {value} not in: {self}", context)
 
 

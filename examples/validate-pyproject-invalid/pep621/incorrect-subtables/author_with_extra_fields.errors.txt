@@ -1,0 +1,1 @@
+'project.authors[0]': Key 'author' not in schema: { name = "string", email = "ref = { ref = format.email }" }

@@ -1,0 +1,1 @@
+'tool.cibuildwheel.overrides[0]': Missing required key: select

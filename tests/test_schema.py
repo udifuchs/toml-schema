@@ -715,21 +715,7 @@ def test_toml_type_schema() -> None:
         toml_schema.from_toml_table({"apple": "stringly = {}"})
     assert (
         str(exc_info.value)
-        == "'apple': 'stringly = {}' schema error: root: Key 'stringly' not in schema: "
-        "{ string = { }, "
-        'enum = [ "string" ], '
-        'pattern = "string", '
-        'float = { min = "float", max = "float" }, '
-        'integer = { min = "integer", max = "integer" }, '
-        "boolean = { }, "
-        "offset-date-time = { }, "
-        "local-date-time = { }, "
-        "date = { }, "
-        "time = { }, "
-        "any-value = { }, "
-        "union = { }, "
-        'ref = "string", '
-        'file = "string" }'
+        == "'apple': 'stringly = {}' schema error: root: Key 'stringly' not in schema."
     )
 
 
@@ -799,7 +785,7 @@ def test_toml_enum_type() -> None:
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"color": "yellow"})
-    assert str(exc_info.value) == "'color': 'yellow' not in ['Red', 'Green', 'Blue']"
+    assert str(exc_info.value) == "'color': 'yellow' not in: ['Red', 'Green', 'Blue']"
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"color": True})
@@ -1086,11 +1072,7 @@ def test_hidden_key() -> None:
     schema.validate({"price": 3.3})
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"number": 3.3})
-    assert (
-        str(exc_info.value) == "root: Key 'number' not in schema: "
-        '{ "number = { hidden = true }" = [ "union", "float", "integer" ], '
-        'price = "ref = { ref = number }" }'
-    )
+    assert str(exc_info.value) == "root: Key 'number' not in schema."
 
     # Hidden keys can have the same name as visible keys:
     schema = toml_schema.loads("""
