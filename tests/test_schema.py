@@ -1334,13 +1334,13 @@ def test_main(
     )
     assert captured.err == ""
 
-    # Check schema of pyproject.toml full example from https://packaging.python.org/
     with pytest.raises(SystemExit, match="0"):
         run_toml_schema("--version")
     captured = capsys.readouterr()
     assert captured.out == f"toml-schema {toml_schema.__version__}\n"
     assert captured.err == ""
 
+    # Successful validation of schema:
     schema_path = tmp_path / "main.toml-schema"
     toml_path = tmp_path / "main.toml"
     with schema_path.open("w") as schema_file:
@@ -1360,3 +1360,27 @@ def test_main(
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == "'name': Value 3 is not: \"string\"\n"
+
+    # Test syntax error in TOML file:
+    with toml_path.open("w") as toml_file:
+        toml_file.write("name = { 3")
+    with pytest.raises(SystemExit, match="1"):
+        run_toml_schema(str(schema_path), str(toml_path))
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert (
+        captured.err == f"Error reading '{toml_path}': "
+        "Expected '=' after a key in a key/value pair (at end of document)\n"
+    )
+
+    # Test syntax error in TOML schema file:
+    with schema_path.open("w") as schema_file:
+        schema_file.write('name == "string"')
+    with pytest.raises(SystemExit, match="1"):
+        run_toml_schema(str(schema_path), str(toml_path))
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert (
+        captured.err == f"Error reading '{schema_path}': "
+        "Invalid value (at line 1, column 7)\n"
+    )

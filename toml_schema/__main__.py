@@ -34,9 +34,17 @@ def main() -> None:
     """toml-schema main entry-point."""
     try:
         settings = Settings()
-        schema_table = from_file(settings.schema_file)
-        with pathlib.Path(settings.toml_file).open("rb") as toml_file:
-            toml_table: dict[str, TOMLValue] = tomllib.load(toml_file)
+        try:
+            schema_table = from_file(settings.schema_file)
+        except tomllib.TOMLDecodeError as ex:
+            print(f"Error reading '{settings.schema_file}': {ex}", file=sys.stderr)
+            raise SystemExit(1) from ex
+        try:
+            with pathlib.Path(settings.toml_file).open("rb") as toml_file:
+                toml_table: dict[str, TOMLValue] = tomllib.load(toml_file)
+        except tomllib.TOMLDecodeError as ex:
+            print(f"Error reading '{settings.toml_file}': {ex}", file=sys.stderr)
+            raise SystemExit(1) from ex
         schema_table.validate(toml_table)
         print("TOML schema validated.")
     except (SchemaError, OSError) as ex:
