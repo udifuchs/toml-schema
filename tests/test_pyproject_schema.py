@@ -21,7 +21,7 @@ WRITE_ERROR_FILES = False
 
 def list_toml_files() -> Generator[tuple[toml_schema.Table, pathlib.Path]]:
     """Generate a list of TOML files to test."""
-    schema = toml_schema.from_file("schemastore/pyproject.toml-schema")
+    schema = toml_schema.from_file("schemastore/pyproject.schema.toml")
 
     if not WRITE_ERROR_FILES:  # pragma: no branch
         yield schema, pathlib.Path("pyproject.toml")

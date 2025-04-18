@@ -2,7 +2,7 @@ distribution = "boolean"
 ignore_package_warnings = [ "string" ]
 plugins = [ "string" ]
 source = [ "ref = 'defs.package-source'" ]
-dockerize = "file = 'partial-pdm-dockerize.toml-schema'"
+dockerize = "file = 'partial-pdm-dockerize.schema.toml'"
 
 [dev-dependencies]
 dev = "ref = 'defs.dev-dependency-group'"

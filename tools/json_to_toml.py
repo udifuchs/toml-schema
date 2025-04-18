@@ -141,7 +141,7 @@ def get_toml_element(  # noqa: C901, PLR0911, PLR0912
                 subprocess.run(  # noqa: PLW1510,S603
                     ["wget", f"--output-document={json_ref}", ref]  # noqa: S607
                 )
-            toml_ref = pathlib.Path(json_ref).with_suffix(".toml-schema")
+            toml_ref = pathlib.Path(json_ref).with_suffix(".schema.toml")
             return f'''"file = '{toml_ref}'"'''
         warning(f"{key}: Unsupported reference: {ref}")
         return '"any-value"'
@@ -480,7 +480,7 @@ def convert(json_filename: str) -> pathlib.Path:
     with pathlib.Path(json_filename).open("r") as json_file:
         json_object = json.load(json_file)
 
-    toml_filename = pathlib.Path(json_filename).with_suffix(".toml-schema")
+    toml_filename = pathlib.Path(json_filename).with_suffix(".schema.toml")
     debug(f"Generating file: {toml_filename}")
     global global_toml_file
     with pathlib.Path(toml_filename).open("w") as global_toml_file:

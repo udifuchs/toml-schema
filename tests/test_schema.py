@@ -1241,17 +1241,17 @@ def test_reference() -> None:
 
 def test_file_reference(tmp_path: pathlib.Path) -> None:
     """Test reference to a file."""
-    user_schema_file = tmp_path / "user.toml-schema"
-    main_schema_file = tmp_path / "main.toml-schema"
+    user_schema_file = tmp_path / "user.schema.toml"
+    main_schema_file = tmp_path / "main.schema.toml"
     with user_schema_file.open("w") as schema_file:
         schema_file.write('name = "string"')
     with main_schema_file.open("w") as schema_file:
-        schema_file.write("user = \"file = 'user.toml-schema'\"")
+        schema_file.write("user = \"file = 'user.schema.toml'\"")
     schema = toml_schema.from_file(str(main_schema_file))
     schema.validate({"user": {"name": "John"}})
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads("user = \"file = 'user.toml-schema'\"")
+        toml_schema.loads("user = \"file = 'user.schema.toml'\"")
     assert (
         str(exc_info.value)
         == "'user': Schema has file reference. Must specify TOML filename."
@@ -1262,7 +1262,7 @@ def test_file_reference(tmp_path: pathlib.Path) -> None:
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema = toml_schema.from_file(str(main_schema_file))
     assert (
-        str(exc_info.value) == "'user': Error reading 'user.toml-schema': "
+        str(exc_info.value) == "'user': Error reading 'user.schema.toml': "
         "Expected '=' after a key in a key/value pair (at line 1, column 6)"
     )
 
@@ -1271,17 +1271,17 @@ def test_file_reference(tmp_path: pathlib.Path) -> None:
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema = toml_schema.from_file(str(main_schema_file))
     assert (
-        str(exc_info.value) == "'user': Error reading 'user.toml-schema': "
+        str(exc_info.value) == "'user': Error reading 'user.schema.toml': "
         "'name': 'stringly' is not a valid keyword type."
     )
 
     with main_schema_file.open("w") as schema_file:
-        schema_file.write("user = \"file = 'no-such-file.toml-schema'\"")
+        schema_file.write("user = \"file = 'no-such-file.schema.toml'\"")
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema = toml_schema.from_file(str(main_schema_file))
     assert (
-        str(exc_info.value) == "'user': Error reading 'no-such-file.toml-schema': "
-        f"[Errno 2] No such file or directory: '{tmp_path}/no-such-file.toml-schema'"
+        str(exc_info.value) == "'user': Error reading 'no-such-file.schema.toml': "
+        f"[Errno 2] No such file or directory: '{tmp_path}/no-such-file.schema.toml'"
     )
 
 
@@ -1328,7 +1328,7 @@ def test_main(
     assert captured.err == ""
 
     # Successful validation of schema:
-    schema_path = tmp_path / "main.toml-schema"
+    schema_path = tmp_path / "main.schema.toml"
     toml_path = tmp_path / "main.toml"
     with schema_path.open("w") as schema_file:
         schema_file.write('name = "string"')

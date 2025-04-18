@@ -171,14 +171,14 @@ wave-function = "ref = 'def.complex'"
 
 - `file` is used to reference other TOML schema files. The file path should always be relative to the main TOML file. Here is a minimal example:
 
-    `user.toml-schema`:
+    `user.schema.toml`:
     ```
     name = "string"
     ```
 
-    `main.toml-schema`:
+    `main.schema.toml`:
     ```
-    user = "file = 'user.toml-schema'"
+    user = "file = 'user.schema.toml'"
     ```
 
     `main.toml`:
@@ -212,7 +212,7 @@ Any key with an "=" in it, is assumed to be a key with options and is required t
 There is a command-line tool for validating a TOML file with a schema.
 For example, to validate the project `pyproject.toml`:
 ```
-$ python3 -m toml_schema examples/pyproject.toml-schema pyproject.toml
+$ python3 -m toml_schema schemastore/pyproject.schema.toml pyproject.toml
 TOML schema validated.
 ```
 
@@ -221,7 +221,7 @@ The code to validate a TOML file in python is:
 import tomllib
 import toml_schema
 
-schema = toml_schema.from_file("schema-store/pyproject.toml-schema")
+schema = toml_schema.from_file("schemastore/pyproject.schema.toml")
 with open("pyproject.toml", "rb") as toml_file:
     toml_table: dict[str, toml_schema.TOMLValue] = tomllib.load(toml_file)
 try:
