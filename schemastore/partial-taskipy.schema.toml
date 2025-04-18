@@ -14,12 +14,12 @@ settings = "ref = 'defs.Settings'"
 Task = [
     "union",
     "ref = 'defs.Command'",
-    { "cmd = { required = true }" = "ref = 'defs.Command'", help = "string", use_vars = "ref = 'defs.UseVars'", cwd = "ref = 'defs.Cwd'", "*" = "any-value" },
+    { "cmd = { required = true }" = "ref = 'defs.Command'", help = "string = { min-len = 1 }", use_vars = "ref = 'defs.UseVars'", cwd = "ref = 'defs.Cwd'", "*" = "any-value" },
 ]
-Command = "string"
-VariableValue = "string"
+Command = "string = { min-len = 1 }"
+VariableValue = "string = { min-len = 1 }"
 UseVars = "boolean"
-Cwd = "string"
+Cwd = "string = { min-len = 1 }"
 
 ["defs = { hidden = true }".Variable]
 var = "ref = 'defs.VariableValue'"

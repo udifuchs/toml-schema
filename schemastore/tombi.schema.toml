@@ -63,4 +63,4 @@ toml-version = "ref = 'defs.TomlVersion'"
 ["defs = { hidden = true }".SubSchema]
 "path = { required = true }" = "string"
 "include = { required = true }" = [ "string" ]
-root-keys = "string"
+root-keys = "string = { min-len = 1 }"

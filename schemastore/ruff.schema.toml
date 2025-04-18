@@ -1,4 +1,4 @@
-allowed-confusables = [ "string" ]
+allowed-confusables = [ "string = { min-len = 1, max-len = 1 }" ]
 analyze = "ref = 'defs.AnalyzeOptions'"
 builtins = [ "string" ]
 cache-dir = "string"
@@ -1767,7 +1767,7 @@ variables = [ "string" ]
 "*" = [ "string" ]
 
 ["defs = { hidden = true }".LintOptions]
-allowed-confusables = [ "string" ]
+allowed-confusables = [ "string = { min-len = 1, max-len = 1 }" ]
 dummy-variable-rgx = "string"
 exclude = [ "string" ]
 explicit-preview-rules = "boolean"

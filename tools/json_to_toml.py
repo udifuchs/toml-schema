@@ -56,12 +56,10 @@ JSON_TODO = (
     "if",
     "then",
     "else",
-    "minLength",
-    "maxLength",
-    "minItems",
     "dependencies",
     "minProperties",  # Shows up only in json object.
     "propertyNames",  # Shows up only in json object.
+    "minItems",  # For array
     "uniqueItems",  # For array
     "additionalItems",  # For array
 )
@@ -73,7 +71,18 @@ URI_PATTERN = r"^\w+:(\/?\/?)[^\s]+\Z"
 FORMAT: dict[str, dict[str, str]] = {}
 
 
-def get_toml_element(  # noqa: C901, PLR0911, PLR0912
+# Specific handlers for JSON schemas with unusual combinations:
+
+
+def handle_poe_min_len(key: str, json_object: dict[str, Any]) -> None:
+    if "minLength" in json_object:
+        json_object.pop("minLength")
+        assert key == '"defs = { hidden = true }".common_task.cwd'
+        assert global_filename == "partial-poe.json"
+        info(f"{key}: Redundant minLength in pattern")
+
+
+def get_toml_element(  # noqa: C901, PLR0911
     key: str, json_object: dict[str, Any], *, inline: bool
 ) -> str | None:
     debug(f"get {key}")
@@ -102,17 +111,7 @@ def get_toml_element(  # noqa: C901, PLR0911, PLR0912
         return f'''"enum = [ '{const}' ]"'''
 
     if "pattern" in json_object:
-        if "type" in json_object:
-            json_type = json_object.pop("type")
-            assert json_type == "string"
-        pattern = json_object.pop("pattern")
-        if "\n" in pattern:
-            warning(rf"{key}: Replaced '\n' with '\\n' in pattern.")
-            pattern = pattern.replace("\n", "\\n")
-        if "'" in pattern:
-            pattern = repr(pattern).replace(r"\'", "'")
-            return f'''"""\n    pattern = ''{pattern}''\n"""'''
-        return f'"""\n    pattern = {pattern!r}\n"""'
+        return get_toml_pattern(key, json_object)
 
     toml_union = get_toml_union(key, json_object)
     if toml_union is not None:
@@ -122,37 +121,13 @@ def get_toml_element(  # noqa: C901, PLR0911, PLR0912
         return get_toml_type(key, json_object, inline=inline)
 
     if "$ref" in json_object:
-        ref = json_object.pop("$ref")
-        if ref.startswith("#/"):
-            keys = ref.split("/")[1:]
-            if keys[0] in ("definitions", "$defs"):
-                keys = [key for key in keys[1:] if key != "properties"]
-                toml_key = ".".join(keys)
-                return f'''"ref = 'defs.{toml_key}'"'''
-            if keys[0] == "properties":
-                keys = [key for key in keys if key != "properties"]
-                toml_key = ".".join(keys)
-                return f'''"ref = '{toml_key}'"'''
-        if ref.startswith(global_uri_base):
-            json_ref = ref[len(global_uri_base) + 1 :]
-            global_file_list.append(json_ref)
-            debug(f"{key}: Queued file for loading: {json_ref}")
-            if WGET:
-                subprocess.run(  # noqa: PLW1510,S603
-                    ["wget", f"--output-document={json_ref}", ref]  # noqa: S607
-                )
-            toml_ref = pathlib.Path(json_ref).with_suffix(".schema.toml")
-            return f'''"file = '{toml_ref}'"'''
-        warning(f"{key}: Unsupported reference: {ref}")
-        return '"any-value"'
+        return get_toml_ref(key, json_object)
 
     warning(f"{key}: Missing type in: {json_object}")
     return "{ }"
 
 
-def get_toml_type(  # noqa: C901, PLR0911, PLR0912, PLR0915
-    key: str, json_object: dict[str, Any], *, inline: bool
-) -> str | None:
+def get_toml_type(key: str, json_object: dict[str, Any], *, inline: bool) -> str | None:
     json_type = json_object.pop("type")
     if "$ref" in json_object:
         ref = json_object.pop("$ref")
@@ -179,7 +154,19 @@ def get_toml_type(  # noqa: C901, PLR0911, PLR0912, PLR0915
     if json_type == "number":
         json_type = "float"
 
+    return get_toml_type_options(key, json_type, json_object)
+
+
+def get_toml_type_options(  # noqa: C901, PLR0912
+    key: str, json_type: str, json_object: dict[str, Any]
+) -> str | None:
     options = []
+    if "minLength" in json_object:
+        min_len = json_object.pop("minLength")
+        options.append(f"min-len = {min_len}")
+    if "maxLength" in json_object:
+        max_len = json_object.pop("maxLength")
+        options.append(f"max-len = {max_len}")
     minimum: float | int | None = None
     maximum: float | int | None = None
     if "minimum" in json_object:
@@ -228,6 +215,32 @@ def get_toml_type(  # noqa: C901, PLR0911, PLR0912, PLR0915
         options_str = ", ".join(options)
         return f'"{json_type} = {{ {options_str} }}"'
     return f'"{json_type}"'
+
+
+def get_toml_ref(key: str, json_object: dict[str, Any]) -> str | None:
+    ref = json_object.pop("$ref")
+    if ref.startswith("#/"):
+        keys = ref.split("/")[1:]
+        if keys[0] in ("definitions", "$defs"):
+            keys = [key for key in keys[1:] if key != "properties"]
+            toml_key = ".".join(keys)
+            return f'''"ref = 'defs.{toml_key}'"'''
+        if keys[0] == "properties":
+            keys = [key for key in keys if key != "properties"]
+            toml_key = ".".join(keys)
+            return f'''"ref = '{toml_key}'"'''
+    if ref.startswith(global_uri_base):
+        json_ref = ref[len(global_uri_base) + 1 :]
+        global_file_list.append(json_ref)
+        debug(f"{key}: Queued file for loading: {json_ref}")
+        if WGET:
+            subprocess.run(  # noqa: PLW1510,S603
+                ["wget", f"--output-document={json_ref}", ref]  # noqa: S607
+            )
+        toml_ref = pathlib.Path(json_ref).with_suffix(".schema.toml")
+        return f'''"file = '{toml_ref}'"'''
+    warning(f"{key}: Unsupported reference: {ref}")
+    return '"any-value"'
 
 
 def get_toml_table(  # noqa: C901, PLR0912
@@ -390,6 +403,21 @@ def get_toml_array(key: str, json_object: dict[str, Any]) -> str:
     if json_object != {}:
         raise Exception(f"Extra keys: {key}: {json_object}")
     return f"[ {toml_type} ]"
+
+
+def get_toml_pattern(key: str, json_object: dict[str, Any]) -> str | None:
+    pattern = json_object.pop("pattern")
+    if "type" in json_object:
+        json_type = json_object.pop("type")
+        assert json_type == "string"
+        handle_poe_min_len(key, json_object)
+    if "\n" in pattern:
+        warning(rf"{key}: Replaced '\n' with '\\n' in pattern.")
+        pattern = pattern.replace("\n", "\\n")
+    if "'" in pattern:
+        pattern = repr(pattern).replace(r"\'", "'")
+        return f'''"""\n    pattern = ''{pattern}''\n"""'''
+    return f'"""\n    pattern = {pattern!r}\n"""'
 
 
 def get_toml_union(  # noqa: C901, PLR0912

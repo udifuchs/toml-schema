@@ -159,13 +159,21 @@ class SchemaKey(SchemaElement):
         return f'"{escape_quotes}"'
 
 
+@dataclasses.dataclass(frozen=True)
 class String(SchemaElement):
     """String schema type."""
+
+    min_len: Optional[int] = None
+    max_len: Optional[int] = None
 
     def validate(self, value: TOMLValue, /, *, context: str) -> None:
         """Validate value for string type."""
         if type(value) is not str:
             raise SchemaError(f"Value {_format_attr(value)} is not: {self}", context)
+        if self.min_len is not None and len(value) < self.min_len:
+            raise SchemaError(f"len({value!r}) < {self.min_len}", context)
+        if self.max_len is not None and len(value) > self.max_len:
+            raise SchemaError(f"len({value!r}) > {self.max_len}", context)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -652,15 +660,15 @@ def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
         if _type_name(type_class) == type_name:
             # It is not possible to static check the call parameters typing.
             # But the types schema validation guarantees the typing dynamically.
-            return type_class(
-                _address=_address,
-                **(
-                    toml_type_toml[type_name]
-                    # For example: {"name": {"required": True}}
-                    if isinstance(toml_type_toml[type_name], dict)
-                    else toml_type_toml  # For example: {"pattern": "^[a-z]*$"}
-                ),  # type: ignore[arg-type]
-            )
+            if isinstance(toml_type_toml[type_name], dict):
+                # Table option, for example: "integer = { min = 0, max = 255 }"
+                type_dict = cast(dict[str, TOMLValue], toml_type_toml[type_name])
+                type_params: dict[str, TOMLValue] = {
+                    key.replace("-", "_"): value for key, value in type_dict.items()
+                }
+                return type_class(_address=_address, **type_params)
+            # Key-value option, for example: "pattern = '^[a-z]*$'"
+            return type_class(_address=_address, **toml_type_toml)
 
     # The schema validation guarantees that this exception would never be reached:
     raise RuntimeError(
@@ -714,7 +722,7 @@ def from_toml_table(
 
 
 TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
-    "string": {},
+    "string": {"min-len": "integer", "max-len": "integer"},
     "enum": ["string"],
     "pattern": "string",
     "float": {"min": "float", "max": "float"},

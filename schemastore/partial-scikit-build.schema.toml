@@ -1,11 +1,11 @@
 generate = [ [
     "union",
-    { "path = { required = true }" = "string", "template = { required = true }" = "string", location = """enum = [
+    { "path = { required = true }" = "string = { min-len = 1 }", "template = { required = true }" = "string = { min-len = 1 }", location = """enum = [
     "install",
     "build",
     "source",
 ]""" },
-    { "path = { required = true }" = "string", "template-path = { required = true }" = "string", location = """enum = [
+    { "path = { required = true }" = "string = { min-len = 1 }", "template-path = { required = true }" = "string = { min-len = 1 }", location = """enum = [
     "install",
     "build",
     "source",
@@ -39,7 +39,7 @@ targets = [ "string" ]
     "string",
     "boolean",
 ],
-    { "env = { required = true }" = "string", default = [
+    { "env = { required = true }" = "string = { min-len = 1 }", default = [
     "union",
     "string",
     "boolean",

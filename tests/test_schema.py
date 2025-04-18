@@ -82,7 +82,7 @@ def test_create_schema() -> None:
 
     # Internal toml-schema schema for basic TOML types with parameters:
     types_schema_str = """\
-        string = { }
+        string = { min-len = "integer", max-len = "integer" }
         enum = [ "string" ]
         pattern = "string"
         float = { min = "float", max = "float" }
@@ -708,7 +708,8 @@ def test_toml_type_schema() -> None:
         toml_schema.from_toml_table({"apple": "string = { banana = true }"})
     assert (
         str(exc_info.value) == "'apple': 'string = { banana = true }' schema error: "
-        "'string': Key 'banana' not in schema: { }"
+        "'string': Key 'banana' not in schema: "
+        '{ min-len = "integer", max-len = "integer" }'
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -774,8 +775,21 @@ def test_toml_string_type() -> None:
         toml_schema.from_toml_table({"apple": "string = { max = 3 }"})
     assert (
         str(exc_info.value) == "'apple': 'string = { max = 3 }' schema error: "
-        "'string': Key 'max' not in schema: { }"
+        "'string': Key 'max' not in schema: "
+        '{ min-len = "integer", max-len = "integer" }'
     )
+
+    schema = toml_schema.from_toml_table(
+        {"apple": "string = { min-len = 4, max-len = 5 }"}
+    )
+    schema.validate({"apple": "blue"})
+    schema.validate({"apple": "green"})
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"apple": "red"})
+    assert str(exc_info.value) == "'apple': len('red') < 4"
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"apple": "purple"})
+    assert str(exc_info.value) == "'apple': len('purple') > 5"
 
 
 def test_toml_enum_type() -> None:
