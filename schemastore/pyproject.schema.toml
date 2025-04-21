@@ -8,20 +8,18 @@ version = """
     pattern = '^v?((([0-9]+)!)?([0-9]+(\\.[0-9]+)*)([-_\\.]?(alpha|a|beta|b|preview|pre|c|rc)[-_\\.]?([0-9]+)?)?((-([0-9]+))|([-_\\.]?(post|rev|r)[-_\\.]?([0-9]+)?))?([-_\\.]?(dev)[-_\\.]?([0-9]+)?)?)(\\+([a-z0-9]+([-_\\.][a-z0-9]+)*))?$'
 """
 description = "string"
-readme = [
-    "union",
+readme = { union = [
     "string",
     { "file = { required = true }" = "string", content-type = "string" },
     { "text = { required = true }" = "string", content-type = "string" },
     { "content-type = { required = true }" = "string" },
-]
+] }
 requires-python = "string"
-license = [
-    "union",
+license = { union = [
     { "file = { required = true }" = "string" },
     { "text = { required = true }" = "string" },
     "string",
-]
+] }
 license-files = [ "string" ]
 authors = [ "ref = 'defs.projectAuthor'" ]
 maintainers = [ "ref = 'defs.projectAuthor'" ]
@@ -66,13 +64,12 @@ dynamic = [ """enum = [
 "*" = "any-value"
 
 [dependency-groups]
-"pattern = '^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9])$'" = [ [
-    "union",
+"pattern = '^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9])$'" = [ { union = [
     "string",
     { include-group = """
     pattern = '^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9])$'
 """ },
-] ]
+] } ]
 
 [tool]
 black = "file = 'partial-black.schema.toml'"

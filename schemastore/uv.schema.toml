@@ -9,11 +9,10 @@ concurrent-installs = "integer = { min = 1 }"
 config-settings = "ref = 'defs.ConfigSettings'"
 conflicts = "ref = 'defs.SchemaConflicts'"
 constraint-dependencies = [ "string" ]
-default-groups = [
-    "union",
+default-groups = { union = [
     [ "ref = 'defs.GroupName'" ],
     "enum = [ 'all' ]",
-]
+] }
 dependency-metadata = [ "ref = 'defs.StaticMetadata'" ]
 dev-dependencies = [ "string" ]
 environments = [ "string" ]
@@ -60,49 +59,43 @@ workspace = "ref = 'defs.ToolUvWorkspace'"
 "*" = "any-value"
 
 ["defs = { hidden = true }"]
-AnnotationStyle = [
-    "union",
+AnnotationStyle = { union = [
     """enum = [
     "line",
 ]""",
     """enum = [
     "split",
 ]""",
-]
-CacheKey = [
-    "union",
+] }
+CacheKey = { union = [
     "string",
     { "file = { required = true }" = "string" },
     { "git = { required = true }" = "ref = 'defs.GitPattern'" },
     { "env = { required = true }" = "string" },
-]
-ConfigSettingValue = [
-    "union",
+] }
+ConfigSettingValue = { union = [
     { "String = { required = true }" = "string" },
     { "List = { required = true }" = [ "string" ] },
-]
+] }
 ExcludeNewer = """
     pattern = '^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}:\\d{2}(Z|[+-]\\d{2}:\\d{2}))?$'
 """
 ExtraName = "string"
-ForkStrategy = [
-    "union",
+ForkStrategy = { union = [
     """enum = [
     "fewest",
 ]""",
     """enum = [
     "requires-python",
 ]""",
-]
-GitPattern = [
-    "union",
+] }
+GitPattern = { union = [
     "boolean",
     "ref = 'defs.GitSet'",
-]
+] }
 GroupName = "string"
 IndexName = "string"
-IndexStrategy = [
-    "union",
+IndexStrategy = { union = [
     """enum = [
     "first-index",
 ]""",
@@ -112,19 +105,17 @@ IndexStrategy = [
     """enum = [
     "unsafe-best-match",
 ]""",
-]
+] }
 IndexUrl = "string"
-KeyringProviderType = [
-    "union",
+KeyringProviderType = { union = [
     """enum = [
     "disabled",
 ]""",
     """enum = [
     "subprocess",
 ]""",
-]
-LinkMode = [
-    "union",
+] }
+LinkMode = { union = [
     """enum = [
     "clone",
 ]""",
@@ -137,14 +128,13 @@ LinkMode = [
     """enum = [
     "symlink",
 ]""",
-]
+] }
 MarkerTree = "string"
 PackageName = "string"
 PackageNameSpecifier = """
     pattern = '^(:none:|:all:|([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]))$'
 """
-PrereleaseMode = [
-    "union",
+PrereleaseMode = { union = [
     """enum = [
     "disallow",
 ]""",
@@ -160,9 +150,8 @@ PrereleaseMode = [
     """enum = [
     "if-necessary-or-explicit",
 ]""",
-]
-PythonDownloads = [
-    "union",
+] }
+PythonDownloads = { union = [
     """enum = [
     "automatic",
 ]""",
@@ -172,9 +161,8 @@ PythonDownloads = [
     """enum = [
     "never",
 ]""",
-]
-PythonPreference = [
-    "union",
+] }
+PythonPreference = { union = [
     """enum = [
     "only-managed",
 ]""",
@@ -187,14 +175,13 @@ PythonPreference = [
     """enum = [
     "only-system",
 ]""",
-]
+] }
 PythonVersion = """
     pattern = '^3\\.\\d+(\\.\\d+)?$'
 """
 RequiredVersion = "string"
 Requirement = "string"
-ResolutionMode = [
-    "union",
+ResolutionMode = { union = [
     """enum = [
     "highest",
 ]""",
@@ -204,26 +191,23 @@ ResolutionMode = [
     """enum = [
     "lowest-direct",
 ]""",
-]
+] }
 SchemaConflictSet = [ "ref = 'defs.SchemaConflictItem'" ]
 SchemaConflicts = [ "ref = 'defs.SchemaConflictSet'" ]
-Source = [
-    "union",
+Source = { union = [
     { branch = "string", extra = "ref = 'defs.ExtraName'", "git = { required = true }" = "ref = 'format.uri'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", rev = "string", subdirectory = "ref = 'defs.String'", tag = "string" },
     { extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", subdirectory = "ref = 'defs.String'", "url = { required = true }" = "ref = 'format.uri'" },
     { editable = "boolean", extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", "path = { required = true }" = "ref = 'defs.String'" },
     { extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", "index = { required = true }" = "ref = 'defs.IndexName'", marker = "ref = 'defs.MarkerTree'" },
     { extra = "ref = 'defs.ExtraName'", group = "ref = 'defs.GroupName'", marker = "ref = 'defs.MarkerTree'", "workspace = { required = true }" = "boolean" },
-]
+] }
 Sources = "ref = 'defs.SourcesWire'"
-SourcesWire = [
-    "union",
+SourcesWire = { union = [
     "ref = 'defs.Source'",
     [ "ref = 'defs.Source'" ],
-]
+] }
 String = "string"
-TargetTriple = [
-    "union",
+TargetTriple = { union = [
     """enum = [
     "windows",
 ]""",
@@ -335,10 +319,9 @@ TargetTriple = [
     """enum = [
     "aarch64-manylinux_2_40",
 ]""",
-]
+] }
 TrustedHost = "string"
-TrustedPublishing = [
-    "union",
+TrustedPublishing = { union = [
     """enum = [
     "always",
     "never",
@@ -346,7 +329,7 @@ TrustedPublishing = [
     """enum = [
     "automatic",
 ]""",
-]
+] }
 
 ["defs = { hidden = true }".ConfigSettings]
 "*" = "ref = 'defs.ConfigSettingValue'"

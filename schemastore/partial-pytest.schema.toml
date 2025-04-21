@@ -1,8 +1,7 @@
-ini_options = [
-    "union",
+ini_options = { union = [
     "ref = 'defs.IniOptions'",
     "ref = 'defs.IniOptionsAsyncio'",
-]
+] }
 
 ["defs = { hidden = true }"]
 AsyncioScope = """enum = [
@@ -12,8 +11,7 @@ AsyncioScope = """enum = [
     "package",
     "session",
 ]"""
-LogLevel = [
-    "union",
+LogLevel = { union = [
     "integer = { min = 0 }",
     """enum = [
     "CRITICAL",
@@ -27,14 +25,13 @@ LogLevel = [
     "FATAL",
     "WARN",
 ]""",
-]
+] }
 
 ["defs = { hidden = true }".IniOptions]
-addopts = [
-    "union",
+addopts = { union = [
     [ "string" ],
     "string",
-]
+] }
 cache_dir = "string"
 consider_namespace_packages = "boolean"
 console_output_style = """enum = [
@@ -44,22 +41,20 @@ console_output_style = """enum = [
     "count",
 ]"""
 doctest_encoding = "string"
-doctest_optionflags = [
-    "union",
+doctest_optionflags = { union = [
     [ "string" ],
     "string",
-]
+] }
 empty_parameter_set_mark = """enum = [
     "skip",
     "xfail",
     "fail_at_collect",
 ]"""
 faulthandler_timeout = "integer"
-filterwarnings = [
-    "union",
+filterwarnings = { union = [
     [ "string" ],
     "string",
-]
+] }
 junit_duration_report = """enum = [
     "total",
     "call",
@@ -78,15 +73,14 @@ junit_logging = """enum = [
 ]"""
 junit_log_passing_tests = "boolean"
 junit_suite_name = "string"
-log_auto_indent = [
-    "union",
+log_auto_indent = { union = [
     "boolean",
     "integer = { min = 0 }",
     """enum = [
     "On",
     "Off",
 ]""",
-]
+] }
 log_cli = "boolean"
 log_cli_date_format = "string"
 log_cli_format = "string"
@@ -98,81 +92,69 @@ log_file_format = "string"
 log_file_level = "ref = 'defs.LogLevel'"
 log_format = "string"
 log_level = "ref = 'defs.LogLevel'"
-markers = [
-    "union",
+markers = { union = [
     [ "string" ],
     "string",
-]
+] }
 minversion = "string"
-norecursedirs = [
-    "union",
+norecursedirs = { union = [
     [ "string" ],
     "string",
-]
-python_classes = [
-    "union",
+] }
+python_classes = { union = [
     [ "string" ],
     "string",
-]
-python_files = [
-    "union",
+] }
+python_files = { union = [
     [ "string" ],
     "string",
-]
-python_functions = [
-    "union",
+] }
+python_functions = { union = [
     [ "string" ],
     "string",
-]
-pythonpath = [
-    "union",
+] }
+pythonpath = { union = [
     [ "string" ],
     "string",
-]
-required_plugins = [
-    "union",
+] }
+required_plugins = { union = [
     [ "string" ],
     "string",
-]
-testpaths = [
-    "union",
+] }
+testpaths = { union = [
     [ "string" ],
     "string",
-]
+] }
 tmp_path_retention_count = "integer"
 tmp_path_retention_policy = """enum = [
     "all",
     "failed",
     "none",
 ]"""
-usefixtures = [
-    "union",
+usefixtures = { union = [
     [ "string" ],
     "string",
-]
-verbosity_assertions = [
-    "union",
+] }
+verbosity_assertions = { union = [
     "integer = { min = 0 }",
     """enum = [
     "auto",
 ]""",
-]
-verbosity_test_cases = [
-    "union",
+] }
+verbosity_test_cases = { union = [
     "integer = { min = 0 }",
     """enum = [
     "auto",
 ]""",
-]
+] }
 xfail_strict = "boolean"
 "*" = "any-value"
 
 ["defs = { hidden = true }".IniOptionsAsyncio]
 asyncio_default_fixture_loop_scope = "string"
 asyncio_default_test_loop_scope = "string"
-asyncio_mode = [
-    "union",
+asyncio_mode = { union = [
     "enum = [ 'auto' ]",
     "enum = [ 'strict' ]",
-]
+] }
 "*" = "any-value"

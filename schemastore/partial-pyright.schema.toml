@@ -113,7 +113,7 @@ executionEnvironments = [ { "root = { required = true }" = "string", disableByte
 "*" = "any-value"
 
 [defineConstant]
-"*" = [ "union", "string", "boolean" ]
+"*" = { union = [ "string", "boolean" ] }
 
 ["defs = { hidden = true }"]
 diagnostic = """enum = [

@@ -93,7 +93,6 @@ def test_create_schema() -> None:
         date = { }
         time = { }
         any-value = { }
-        union = { }
         ref = "string"
         file = "string"\
         """
@@ -103,41 +102,41 @@ def test_create_schema() -> None:
 
     # Two schemas are equal even if their keys are ordered differently:
     assert toml_schema.loads("""
-        apple = 'string'
-        orange = 'string'
+        apple = "string"
+        orange = "string"
     """) == toml_schema.loads("""
-        orange = 'string'
-        apple = 'string'
+        orange = "string"
+        apple = "string"
     """)
 
     assert toml_schema.loads("""
-        apple = ['string']
+        apple = [ "string" ]
     """) != toml_schema.loads("""
-        apple = ['boolean']
+        apple = [ "boolean" ]
     """)
 
     assert toml_schema.loads("""
-        apple = ['union', 'string', 'float']
+        apple = { union = [ "string", "float" ] }
     """) != toml_schema.loads("""
-        apple = ['boolean']
+        apple = [ "boolean" ]
     """)
 
     assert toml_schema.loads("""
-        apple = ['union', 'string', 'float']
+        apple = { union = [ "string", "float" ] }
     """) == toml_schema.loads("""
-        apple = ['union', 'string', 'float']
+        apple = { union = [ "string", "float" ] }
     """)
 
     assert toml_schema.loads("""
-        apple = ['union', 'string', 'float']
+        apple = { union = [ "string", "float" ] }
     """) == toml_schema.loads("""
-        apple = ['union', 'float', 'string']
+        apple = { union = [ "float", "string" ] }
     """)
 
     assert toml_schema.loads("""
-        apple = ['union', 'string', 'boolean']
+        apple = { union = [ "string", "boolean" ] }
     """) != toml_schema.loads("""
-        apple = ['union', 'float', 'string']
+        apple = { union = [ "float", "string" ] }
     """)
 
 
@@ -188,13 +187,11 @@ def test_toml_example() -> None:
         [database]
         enabled = "boolean"
         ports = [ "integer" ]
-        data = [
-            [
+        data = [ { union = [
                 # Each element can be an array of strings or an array of floats:
-                "union",
                 [ "string" ],
-                [ "float" ]
-            ]
+                [ "float" ],
+            ] }
         ]
         temp_targets = { cpu = "float", case = "float" }
 
@@ -283,21 +280,20 @@ def test_doc_array() -> None:
         colors = [ "string" ]
         nested_arrays_of_ints = [ [ "integer" ] ]
         nested_mixed_array = [
-            [
-                "union",
+            { union = [
                 [ "integer" ],
-                [ "string" ]
-            ]
+                [ "string" ],
+            ] }
         ]
         string_array = [ "string" ]
 
-        numbers = [ [ "union", "float", "integer" ] ]
-        contributors = [
-            [
-                "union",
-                "string",
-                { name = "string", email = "string", url = "string" }
-            ]
+        [[numbers]]
+        union = [ "float", "integer" ]
+
+        [[contributors]]
+        union = [
+            "string",
+            { name = "string", email = "string", url = "string" }
         ]
     """
     check(schema, toml)
@@ -461,7 +457,7 @@ def test_tables() -> None:
         toml_schema.from_toml_table({"apple = { banana = 'string' }": "string"})
     assert (
         str(exc_info.value) == "'apple': Value {'banana': 'string'} not in: "
-        '[ "union", { required = "boolean" }, { hidden = "boolean" } ]'
+        '{ union = [ { required = "boolean" }, { hidden = "boolean" } ] }'
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -477,7 +473,7 @@ def test_tables() -> None:
         )
     assert (
         str(exc_info.value) == "'fruit[0].apple': Value {'banana': 'string'} not in: "
-        '[ "union", { required = "boolean" }, { hidden = "boolean" } ]'
+        '{ union = [ { required = "boolean" }, { hidden = "boolean" } ] }'
     )
 
 
@@ -509,61 +505,57 @@ def test_arrays() -> None:
 def test_union() -> None:
     """Test schema unions."""
     with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads("number = ['float', 'integer', 'union']")
+        toml_schema.loads("""[number]
+            union = [ "integer", "float" ]
+            name = "string"
+        """)
     assert (
-        str(exc_info.value)
-        == "'number': 'union' must be first element in array schema."
+        str(exc_info.value) == "'number': Union table must contain exactly one element."
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads("number = ['union', 'integer', 'float', 'union']")
-    assert (
-        str(exc_info.value)
-        == "'number': 'union' must only be first element in array schema."
-    )
+        toml_schema.loads("""[number]
+            union = "integer"
+        """)
+    assert str(exc_info.value) == "'number': Union value must be a list."
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads("number = ['union']")
-    assert (
-        str(exc_info.value) == "'number': Union should contain at least 2 type options."
-    )
-
-    with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads("number = ['union', 'float']")
+        toml_schema.loads("""[number]
+            union = [ "integer" ]
+        """)
     assert (
         str(exc_info.value) == "'number': Union should contain at least 2 type options."
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads("number = ['union', 'float', 'float']")
+        toml_schema.loads("""[number]
+            union = [ "integer", "float", "integer" ]
+        """)
     assert str(exc_info.value) == "'number': Union must not have duplicates."
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads("number = ['union', 'float', 'any-value']")
+        toml_schema.loads("""[number]
+            union = [ "integer", "float", "any-value" ]
+        """)
     assert (
         str(exc_info.value) == "'number': 'any-value' cannot be part of a union schema."
     )
 
-    schema = toml_schema.loads("number = ['union = {}', 'float', 'integer']")
+    schema = toml_schema.loads("""[number]
+        union = [ "integer", "float" ]
+    """)
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"number": True})
     assert (
         str(exc_info.value)
-        == """'number': Value True not in: [ "union", "float", "integer" ]"""
+        == """'number': Value True not in: { union = [ "integer", "float" ] }"""
     )
 
     schema.validate({"number": 3})
     schema.validate({"number": 3.14})
 
-    with pytest.raises(toml_schema.SchemaError) as exc_info:
-        toml_schema.loads("number = 'union = { required = true }'")
-    assert (
-        str(exc_info.value) == "'number': 'union = { required = true }' schema error: "
-        "'union': Key 'required' not in schema: { }"
-    )
-
     schema_1 = toml_schema.loads(
-        "'number = { required = true }' = [ 'union', 'float', 'integer' ]"
+        "'number = { required = true }' = { union = [ 'float', 'integer' ] }"
     )
     test_schema_to_str = toml_schema.loads(schema_table_to_str(schema_1))
     assert schema_1 == test_schema_to_str
@@ -572,40 +564,46 @@ def test_union() -> None:
     assert str(exc_info.value) == "root: Missing required key: number"
 
     schema_2 = toml_schema.loads(
-        "'number = { required = false }' = [ 'union', 'float', 'integer' ]"
+        "'number = { required = false }' = { union = [ 'float', 'integer' ] }"
     )
-    schema_3 = toml_schema.loads("'number' = [ 'union', 'float', 'integer' ]")
+    schema_3 = toml_schema.loads("'number' = { union = [ 'float', 'integer' ] }")
     assert schema_1 != schema_2
     assert schema_2 == schema_3
 
     schema = toml_schema.loads(
-        "number = [ 'union', 'float', { 're' = 'float', 'im' = 'float' } ]"
+        "number = { union = [ 'float', { 're' = 'float', 'im' = 'float' } ] }"
     )
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"number": {"re": 3, "im": 4}})
     assert (
         str(exc_info.value) == "'number': Value {'re': 3, 'im': 4} not in: "
-        """[ "union", "float", { re = "float", im = "float" } ]"""
+        """{ union = [ "float", { re = "float", im = "float" } ] }"""
     )
     schema.validate({"number": {"re": 3.3, "im": 4.4}})
 
-    schema = toml_schema.loads("number = [ 'union', 'float', [ 'float' ] ]")
+    schema = toml_schema.loads("number = { union = [ 'float', [ 'float' ] ] }")
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"number": [3, 4]})
     assert (
-        str(exc_info.value)
-        == """'number': Value [3, 4] not in: [ "union", "float", [ "float" ] ]"""
+        str(exc_info.value) == "'number': Value [3, 4] not in: "
+        '{ union = [ "float", [ "float" ] ] }'
     )
     schema.validate({"number": [3.3, 4.4, 5.5]})
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        toml_schema.loads("union = 'string'")
+    assert str(exc_info.value) == "root: 'union' cannot be a schema key"
+
+    schema = toml_schema.loads('''"pattern = '^union$'" = "string"''')
+    schema.validate({"union": "perfect"})
 
 
 def test_union_merge_tables() -> None:
     """Test if a union can merge tables."""
-    schema = toml_schema.loads("""number = [
-        "union",
+    schema = toml_schema.loads("""number = { union = [
         { foo = "string" },
         { bar = "float" },
-    ]""")
+    ] }""")
     schema.validate({"number": {"foo": "yes"}})
     schema.validate({"number": {"bar": 3.3}})
     # A union of tables does not merge their keys:
@@ -620,7 +618,7 @@ def test_union_merge_tables() -> None:
         )
     assert (
         str(exc_info.value) == "'number': Value {'foo': 'yes', 'bar': 3.3} not in: "
-        '[ "union", { foo = "string" }, { bar = "float" } ]'
+        '{ union = [ { foo = "string" }, { bar = "float" } ] }'
     )
 
 
@@ -726,7 +724,7 @@ def test_toml_key_schema() -> None:
         toml_schema.from_toml_table({"apple = { required = 'yes' }": "string"})
     assert (
         str(exc_info.value) == "'apple': Value {'required': 'yes'} not in: "
-        '[ "union", { required = "boolean" }, { hidden = "boolean" } ]'
+        '{ union = [ { required = "boolean" }, { hidden = "boolean" } ] }'
     )
 
     with pytest.raises(toml_schema.SchemaError) as exc_info:
@@ -815,6 +813,28 @@ def test_toml_enum_type() -> None:
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         toml_schema.from_toml_table({"color": "enum"})
     assert str(exc_info.value) == "'color': 'enum' is not a valid keyword type."
+
+    schema = toml_schema.from_toml_table(
+        {
+            "month": """enum = [
+                "January",
+                "February",
+                "Match",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
+            ]"""
+        }
+    )
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"month": "Today"})
+    assert str(exc_info.value) == "'month': 'Today' not in enum."
 
 
 def test_toml_string_pattern() -> None:
@@ -1079,7 +1099,7 @@ def test_required_key() -> None:
 def test_hidden_key() -> None:
     """Test hidden keys."""
     schema = toml_schema.loads("""
-        "number = { hidden = true }" = [ "union", "float", "integer" ]
+        "number = { hidden = true }" = { union = [ "float", "integer" ] }
         price = "ref = 'number'"
     """)
     schema.validate({"price": 3})
@@ -1091,7 +1111,7 @@ def test_hidden_key() -> None:
     # Hidden keys can have the same name as visible keys:
     schema = toml_schema.loads("""
         number = "boolean"
-        "number = { hidden = true }" = [ "union", "float", "integer" ]
+        "number = { hidden = true }" = { union = [ "float", "integer" ] }
         size = "ref = 'number'"
     """)
     # Hidden keys are retrieved before visible keys:
@@ -1100,7 +1120,7 @@ def test_hidden_key() -> None:
         schema.validate({"size": True})
     assert (
         str(exc_info.value) == "'size': Value True not in: "
-        '[ "union", "float", "integer" ]'
+        '{ union = [ "float", "integer" ] }'
     )
 
 
@@ -1216,21 +1236,19 @@ def test_reference() -> None:
     # References can be recursive:
     schema = toml_schema.loads("""
         [user]
-        name = [
-            "union",
+        name = { union = [
             "string",
             "ref = 'user'",
-        ]
+        ] }
     """)
     schema.validate({"user": {"name": {"name": {"name": "tom"}}}})
 
     # But direct self-reference does not make much sense:
     schema = toml_schema.loads("""
-            name = [
-                "union",
+            name = { union = [
                 "string",
                 "ref = 'name'",
-            ]
+            ] }
         """)
     schema.validate({"name": "tom"})
     with pytest.raises(RecursionError) as rec_err:
@@ -1240,9 +1258,8 @@ def test_reference() -> None:
     # Example from README:
     schema = toml_schema.loads("""
         ["def = { hidden = true }"]
-        number = [ "union", "float", "integer" ]
-        complex = [
-            "union",
+        number = { union = [ "float", "integer" ] }
+        complex.union = [
             "ref = 'def.number'",
             { real = "ref = 'def.number'", imag = "ref = 'def.number'" },
         ]
@@ -1251,6 +1268,10 @@ def test_reference() -> None:
         wave-function = "ref = 'def.complex'"
     """)
     schema.validate({"quantum": {"wave-function": {"real": 0, "imag": 1}}})
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"quantum": {"wave-function": True}})
+    assert str(exc_info.value) == "'quantum.wave-function': Value True not in union."
 
 
 def test_file_reference(tmp_path: pathlib.Path) -> None:

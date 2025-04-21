@@ -57,11 +57,10 @@ requires = [ "string" ]
 "*" = "string"
 
 ["defs = { hidden = true }".Env.scripts]
-"*" = [
-    "union",
+"*" = { union = [
     "string",
     [ "string" ],
-]
+] }
 
 ["defs = { hidden = true }".Envs]
 "*" = "ref = 'defs.Env'"
@@ -101,11 +100,10 @@ include = [ "string" ]
 exclude = [ "string" ]
 artifacts = [ "string" ]
 only-packages = "boolean"
-sources = [
-    "union",
+sources = { union = [
     { "*" = "string" },
     [ "string" ],
-]
+] }
 skip-excluded-dirs = "boolean"
 reproducible = "boolean"
 directory = "string"

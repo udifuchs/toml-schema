@@ -1,30 +1,24 @@
-archs = [
-    "union",
+archs = { union = [
     "string",
     [ "string" ],
-]
-before-all = [
-    "union",
+] }
+before-all = { union = [
     "string",
     [ "string" ],
-]
-before-build = [
-    "union",
+] }
+before-build = { union = [
     "string",
     [ "string" ],
-]
-before-test = [
-    "union",
+] }
+before-test = { union = [
     "string",
     [ "string" ],
-]
-build = [
-    "union",
+] }
+build = { union = [
     "string",
     [ "string" ],
-]
-build-frontend = [
-    "union",
+] }
+build-frontend = { union = [
     """enum = [
     "pip",
     "build",
@@ -45,19 +39,16 @@ build-frontend = [
     "build",
     "build[uv]",
 ]""", args = [ "string" ] },
-]
+] }
 build-verbosity = "integer = { min = -3, max = 3 }"
-config-settings = [
-    "union",
+config-settings = { union = [
     "string",
-    { "pattern = '.+'" = [
-    "union",
+    { "pattern = '.+'" = { union = [
     "string",
     [ "string" ],
-] },
-]
-container-engine = [
-    "union",
+] } },
+] }
+container-engine = { union = [
     """enum = [
     "docker",
     "podman",
@@ -72,23 +63,20 @@ container-engine = [
     "docker",
     "podman",
 ]""", create-args = [ "string" ], disable-host-mount = "boolean" },
-]
+] }
 dependency-versions = "string"
-enable = [
-    "union",
+enable = { union = [
     "ref = 'defs.enable'",
     [ "ref = 'defs.enable'" ],
-]
-environment = [
-    "union",
+] }
+environment = { union = [
     "string",
     { "pattern = '.+'" = "string" },
-]
-environment-pass = [
-    "union",
+] }
+environment-pass = { union = [
     "string",
     [ "string" ],
-]
+] }
 free-threaded-support = "boolean"
 manylinux-aarch64-image = "string"
 manylinux-armv7l-image = "string"
@@ -105,46 +93,38 @@ musllinux-i686-image = "string"
 musllinux-ppc64le-image = "string"
 musllinux-s390x-image = "string"
 musllinux-x86_64-image = "string"
-repair-wheel-command = [
-    "union",
+repair-wheel-command = { union = [
     "string",
     [ "string" ],
-]
-skip = [
-    "union",
+] }
+skip = { union = [
     "string",
     [ "string" ],
-]
-test-command = [
-    "union",
+] }
+test-command = { union = [
     "string",
     [ "string" ],
-]
-test-extras = [
-    "union",
+] }
+test-extras = { union = [
     "string",
     [ "string" ],
-]
-test-groups = [
-    "union",
+] }
+test-groups = { union = [
     "string",
     [ "string" ],
-]
-test-requires = [
-    "union",
+] }
+test-requires = { union = [
     "string",
     [ "string" ],
-]
-test-skip = [
-    "union",
+] }
+test-skip = { union = [
     "string",
     [ "string" ],
-]
-overrides = [ { "select = { required = true }" = [
-    "union",
+] }
+overrides = [ { "select = { required = true }" = { union = [
     "string",
     [ "string" ],
-], before-all = "ref = 'before-all'", before-build = "ref = 'before-build'", before-test = "ref = 'before-test'", build-frontend = "ref = 'build-frontend'", build-verbosity = "ref = 'build-verbosity'", config-settings = "ref = 'config-settings'", container-engine = "ref = 'container-engine'", dependency-versions = "ref = 'dependency-versions'", environment = "ref = 'environment'", environment-pass = "ref = 'environment-pass'", manylinux-aarch64-image = "ref = 'manylinux-aarch64-image'", manylinux-armv7l-image = "ref = 'manylinux-armv7l-image'", manylinux-i686-image = "ref = 'manylinux-i686-image'", manylinux-ppc64le-image = "ref = 'manylinux-ppc64le-image'", manylinux-pypy_aarch64-image = "ref = 'manylinux-pypy_aarch64-image'", manylinux-pypy_i686-image = "ref = 'manylinux-pypy_i686-image'", manylinux-pypy_x86_64-image = "ref = 'manylinux-pypy_x86_64-image'", manylinux-s390x-image = "ref = 'manylinux-s390x-image'", manylinux-x86_64-image = "ref = 'manylinux-x86_64-image'", musllinux-aarch64-image = "ref = 'musllinux-aarch64-image'", musllinux-armv7l-image = "ref = 'musllinux-armv7l-image'", musllinux-i686-image = "ref = 'musllinux-i686-image'", musllinux-ppc64le-image = "ref = 'musllinux-ppc64le-image'", musllinux-s390x-image = "ref = 'musllinux-s390x-image'", musllinux-x86_64-image = "ref = 'musllinux-x86_64-image'", repair-wheel-command = "ref = 'repair-wheel-command'", test-command = "ref = 'test-command'", test-extras = "ref = 'test-extras'", test-groups = "ref = 'test-groups'", test-requires = "ref = 'test-requires'", inherit = { before-all = "ref = 'defs.inherit'", before-build = "ref = 'defs.inherit'", before-test = "ref = 'defs.inherit'", config-settings = "ref = 'defs.inherit'", container-engine = "ref = 'defs.inherit'", environment = "ref = 'defs.inherit'", environment-pass = "ref = 'defs.inherit'", repair-wheel-command = "ref = 'defs.inherit'", test-command = "ref = 'defs.inherit'", test-extras = "ref = 'defs.inherit'", test-requires = "ref = 'defs.inherit'" } } ]
+] }, before-all = "ref = 'before-all'", before-build = "ref = 'before-build'", before-test = "ref = 'before-test'", build-frontend = "ref = 'build-frontend'", build-verbosity = "ref = 'build-verbosity'", config-settings = "ref = 'config-settings'", container-engine = "ref = 'container-engine'", dependency-versions = "ref = 'dependency-versions'", environment = "ref = 'environment'", environment-pass = "ref = 'environment-pass'", manylinux-aarch64-image = "ref = 'manylinux-aarch64-image'", manylinux-armv7l-image = "ref = 'manylinux-armv7l-image'", manylinux-i686-image = "ref = 'manylinux-i686-image'", manylinux-ppc64le-image = "ref = 'manylinux-ppc64le-image'", manylinux-pypy_aarch64-image = "ref = 'manylinux-pypy_aarch64-image'", manylinux-pypy_i686-image = "ref = 'manylinux-pypy_i686-image'", manylinux-pypy_x86_64-image = "ref = 'manylinux-pypy_x86_64-image'", manylinux-s390x-image = "ref = 'manylinux-s390x-image'", manylinux-x86_64-image = "ref = 'manylinux-x86_64-image'", musllinux-aarch64-image = "ref = 'musllinux-aarch64-image'", musllinux-armv7l-image = "ref = 'musllinux-armv7l-image'", musllinux-i686-image = "ref = 'musllinux-i686-image'", musllinux-ppc64le-image = "ref = 'musllinux-ppc64le-image'", musllinux-s390x-image = "ref = 'musllinux-s390x-image'", musllinux-x86_64-image = "ref = 'musllinux-x86_64-image'", repair-wheel-command = "ref = 'repair-wheel-command'", test-command = "ref = 'test-command'", test-extras = "ref = 'test-extras'", test-groups = "ref = 'test-groups'", test-requires = "ref = 'test-requires'", inherit = { before-all = "ref = 'defs.inherit'", before-build = "ref = 'defs.inherit'", before-test = "ref = 'defs.inherit'", config-settings = "ref = 'defs.inherit'", container-engine = "ref = 'defs.inherit'", environment = "ref = 'defs.inherit'", environment-pass = "ref = 'defs.inherit'", repair-wheel-command = "ref = 'defs.inherit'", test-command = "ref = 'defs.inherit'", test-extras = "ref = 'defs.inherit'", test-requires = "ref = 'defs.inherit'" } } ]
 
 [linux]
 archs = "ref = 'archs'"
@@ -172,11 +152,10 @@ musllinux-i686-image = "ref = 'musllinux-i686-image'"
 musllinux-ppc64le-image = "ref = 'musllinux-ppc64le-image'"
 musllinux-s390x-image = "ref = 'musllinux-s390x-image'"
 musllinux-x86_64-image = "ref = 'musllinux-x86_64-image'"
-repair-wheel-command = [
-    "union",
+repair-wheel-command = { union = [
     "string",
     [ "string" ],
-]
+] }
 test-command = "ref = 'test-command'"
 test-extras = "ref = 'test-extras'"
 test-groups = "ref = 'test-groups'"
@@ -208,11 +187,10 @@ build-verbosity = "ref = 'build-verbosity'"
 config-settings = "ref = 'config-settings'"
 dependency-versions = "ref = 'dependency-versions'"
 environment = "ref = 'environment'"
-repair-wheel-command = [
-    "union",
+repair-wheel-command = { union = [
     "string",
     [ "string" ],
-]
+] }
 test-command = "ref = 'test-command'"
 test-extras = "ref = 'test-extras'"
 test-groups = "ref = 'test-groups'"

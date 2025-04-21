@@ -100,14 +100,13 @@ weight = 3.3
 The schema that defines this TOML is:
 ```
 [fruit.*]
-weight = [ "union", "float", "integer" ]
+weight = { union = [ "float", "integer" ] }
 ```
-In this case, since the first element of the array is the keyword "union",
-the array describes a union of allowed types.
+In this case, since the key of the table is the special keyword "union",
+the value of this key is an array that describes a union of allowed types.
 These types can also be composite types:
 ```
-complex_number = [
-    "union",
+complex_number.union = [
     "float",
     "integer",
     { real = "float", imag = "float" },
@@ -158,9 +157,8 @@ discount-percent = "float = { min = 0.0, max = 100.0 }"
 - `ref` is used to reference other components defined in the schema. For example:
 ```
 ["def = { hidden = true }"]
-number = [ "union", "float", "integer" ]
-complex = [
-    "union",
+number = { union = [ "float", "integer" ] }
+complex.union = [
     "ref = 'def.number'",
     { real = "ref = 'def.number'", imag = "ref = 'def.number'" },
 ]
@@ -205,6 +203,12 @@ Key options can also be used to specify wildcard patterns for the keys. For exam
 Any key with an "=" in it, is assumed to be a key with options and is required to be a valid TOML. In the odd case where you actually want to have a key with an "=" in your schema you can specify it with a pattern:
 ```
 "pattern = '^hello=world$'" = "string"
+```
+
+"union" is the only special key without an "=" in it.
+If you need to have the key "union" in your schema, you will have to specify it with a pattern:
+```
+"pattern = '^union$'" = "string"
 ```
 
 ### Usage:

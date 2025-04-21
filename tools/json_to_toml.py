@@ -137,7 +137,7 @@ def get_toml_type(key: str, json_object: dict[str, Any], *, inline: bool) -> str
             del json_type[json_type.index("null")]
         if len(json_type) > 1:
             union_str = ", ".join(f'"{typ}"' for typ in json_type)
-            return f'[ "union", {union_str} ]'
+            return f"{{ union = [ {union_str} ] }}"
         if len(json_type) < 1:
             raise Exception(f"{key}: JSON type array is empty: {json_type}")
         json_type = json_type[0]
@@ -476,7 +476,7 @@ def get_toml_union(  # noqa: C901, PLR0912
         assert isinstance(union_types[0], str)
         return union_types[0]
     union_str = ",\n    ".join(union_types)
-    return f'[\n    "union",\n    {union_str},\n]'
+    return f"{{ union = [\n    {union_str},\n] }}"
 
 
 def get_json_defs(key: str, json_object: dict[str, Any]) -> None:

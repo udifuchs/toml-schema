@@ -1,5 +1,4 @@
-generate = [ [
-    "union",
+generate = [ { union = [
     { "path = { required = true }" = "string = { min-len = 1 }", "template = { required = true }" = "string = { min-len = 1 }", location = """enum = [
     "install",
     "build",
@@ -10,17 +9,16 @@ generate = [ [
     "build",
     "source",
 ]""" },
-] ]
+] } ]
 strict-config = "boolean"
 experimental = "boolean"
 minimum-version = "string"
 build-dir = "string"
 fail = "boolean"
-overrides = [ { "if = { required = true }" = [
-    "union",
+overrides = [ { "if = { required = true }" = { union = [
     "ref = 'defs.if_overrides'",
     { "any = { required = true }" = "ref = 'defs.if_overrides'" },
-], cmake = "ref = 'cmake'", ninja = "ref = 'ninja'", logging = "ref = 'logging'", sdist = "ref = 'sdist'", wheel = "ref = 'wheel'", backport = "ref = 'backport'", editable = "ref = 'editable'", build = "ref = 'build'", install = "ref = 'install'", generate = "ref = 'generate'", messages = "ref = 'messages'", metadata = "ref = 'metadata'", strict-config = "ref = 'strict-config'", experimental = "ref = 'experimental'", minimum-version = "ref = 'minimum-version'", build-dir = "ref = 'build-dir'", fail = "ref = 'fail'", inherit = { cmake = { args = "ref = 'defs.inherit'", define = "ref = 'defs.inherit'", targets = "ref = 'defs.inherit'" }, sdist = { include = "ref = 'defs.inherit'", exclude = "ref = 'defs.inherit'" }, wheel = { packages = "ref = 'defs.inherit'", license-files = "ref = 'defs.inherit'", exclude = "ref = 'defs.inherit'" }, build = { tool-args = "ref = 'defs.inherit'", targets = "ref = 'defs.inherit'" }, install = { components = "ref = 'defs.inherit'" } } } ]
+] }, cmake = "ref = 'cmake'", ninja = "ref = 'ninja'", logging = "ref = 'logging'", sdist = "ref = 'sdist'", wheel = "ref = 'wheel'", backport = "ref = 'backport'", editable = "ref = 'editable'", build = "ref = 'build'", install = "ref = 'install'", generate = "ref = 'generate'", messages = "ref = 'messages'", metadata = "ref = 'metadata'", strict-config = "ref = 'strict-config'", experimental = "ref = 'experimental'", minimum-version = "ref = 'minimum-version'", build-dir = "ref = 'build-dir'", fail = "ref = 'fail'", inherit = { cmake = { args = "ref = 'defs.inherit'", define = "ref = 'defs.inherit'", targets = "ref = 'defs.inherit'" }, sdist = { include = "ref = 'defs.inherit'", exclude = "ref = 'defs.inherit'" }, wheel = { packages = "ref = 'defs.inherit'", license-files = "ref = 'defs.inherit'", exclude = "ref = 'defs.inherit'" }, build = { tool-args = "ref = 'defs.inherit'", targets = "ref = 'defs.inherit'" }, install = { components = "ref = 'defs.inherit'" } } } ]
 
 [cmake]
 minimum-version = "string"
@@ -32,19 +30,16 @@ source-dir = "string"
 targets = [ "string" ]
 
 [cmake.define]
-"pattern = '.+'" = [
-    "union",
-    [
-    "union",
-    "string",
-    "boolean",
-],
-    { "env = { required = true }" = "string = { min-len = 1 }", default = [
-    "union",
+"pattern = '.+'" = { union = [
+    { union = [
     "string",
     "boolean",
 ] },
-]
+    { "env = { required = true }" = "string = { min-len = 1 }", default = { union = [
+    "string",
+    "boolean",
+] } },
+] }
 "*" = "any-value"
 
 [ninja]
@@ -69,11 +64,10 @@ reproducible = "boolean"
 cmake = "boolean"
 
 [wheel]
-packages = [
-    "union",
+packages = { union = [
     [ "string" ],
     { "pattern = '.+'" = "string", "*" = "any-value" },
-]
+] }
 py-api = "string"
 expand-macos-universal-tags = "boolean"
 install-dir = "string"
@@ -152,8 +146,7 @@ cmake-wheel = "boolean"
 abi-flags = "string"
 
 ["defs = { hidden = true }".if_overrides.env]
-"pattern = '.*'" = [
-    "union",
+"pattern = '.*'" = { union = [
     "string",
     "boolean",
-]
+] }

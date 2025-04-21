@@ -13,17 +13,15 @@ TomlVersion = """enum = [
     "v1.1.0-preview",
 ]"""
 BoolDefaultTrue = "boolean"
-OneOrMany_for_SchemaCatalogPath = [
-    "union",
+OneOrMany_for_SchemaCatalogPath = { union = [
     "ref = 'defs.SchemaCatalogPath'",
     [ "ref = 'defs.SchemaCatalogPath'" ],
-]
+] }
 SchemaCatalogPath = "string"
-Schema = [
-    "union",
+Schema = { union = [
     "ref = 'defs.RootSchema'",
     "ref = 'defs.SubSchema'",
-]
+] }
 
 ["defs = { hidden = true }".FormatOptions]
 

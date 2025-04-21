@@ -4,11 +4,10 @@ obsoletes = [ "string" ]
 zip-safe = "boolean"
 script-files = [ "string" ]
 eager-resources = [ "string" ]
-packages = [
-    "union",
+packages = { union = [
     [ "ref = 'defs.package-name'" ],
     "ref = 'defs.find-directive'",
-]
+] }
 include-package-data = "boolean"
 namespace-packages = [ "string" ]
 py-modules = [ "string" ]
@@ -33,31 +32,28 @@ license-files = [ "string" ]
 "*" = "any-value"
 
 [dynamic]
-version = [
-    "union",
+version = { union = [
     "ref = 'defs.attr-directive'",
     "ref = 'defs.file-directive'",
-]
+] }
 classifiers = "ref = 'defs.file-directive'"
 description = "ref = 'defs.file-directive'"
 entry-points = "ref = 'defs.file-directive'"
 dependencies = "ref = 'defs.file-directive-for-dependencies'"
-readme = [
-    "union",
+readme = { union = [
     "ref = 'defs.file-directive'",
     { content-type = "string", "file = { required = true }" = "ref = 'defs.file-directive.file'" },
-]
+] }
 
 [dynamic.optional-dependencies]
 "pattern = '.+'" = "ref = 'defs.file-directive-for-dependencies'"
 
 ["defs = { hidden = true }"]
 package-name = "string"
-file-directive-for-dependencies = [
-    "union",
+file-directive-for-dependencies = { union = [
     { },
     "ref = 'defs.file-directive'",
-]
+] }
 
 ["defs = { hidden = true }".ext-module]
 "name = { required = true }" = "string"
@@ -79,11 +75,10 @@ optional = "boolean"
 py-limited-api = "boolean"
 
 ["defs = { hidden = true }".file-directive]
-"file = { required = true }" = [
-    "union",
+"file = { required = true }" = { union = [
     "string",
     [ "string" ],
-]
+] }
 
 ["defs = { hidden = true }".attr-directive]
 "attr = { required = true }" = "string"

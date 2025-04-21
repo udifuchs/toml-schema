@@ -101,32 +101,27 @@ platinclude = "ref = 'defs.wheel-data-array'"
 data = "ref = 'defs.wheel-data-array'"
 
 ["defs = { hidden = true }"]
-wheel-data-array = [ [
-    "union",
+wheel-data-array = [ { union = [
     { "path = { required = true }" = "string", relative-to = "string" },
     "string",
-] ]
-env-file = [
-    "union",
+] } ]
+env-file = { union = [
     { override = "string" },
     "string",
-]
+] }
 script-help = "string"
-pdm-script = [
-    "union",
-    [
-    "union",
+pdm-script = { union = [
+    { union = [
     { "call = { required = true }" = "string", env = "ref = 'defs.env-vars'", env_file = "ref = 'defs.env-file'", help = "ref = 'defs.script-help'" },
-    { "cmd = { required = true }" = [
-    "union",
+    { "cmd = { required = true }" = { union = [
     "string",
     [ "string" ],
-], env = "ref = 'defs.env-vars'", env_file = "ref = 'defs.env-file'", help = "ref = 'defs.script-help'" },
+] }, env = "ref = 'defs.env-vars'", env_file = "ref = 'defs.env-file'", help = "ref = 'defs.script-help'" },
     { "shell = { required = true }" = "string", env = "ref = 'defs.env-vars'", env_file = "ref = 'defs.env-file'", help = "ref = 'defs.script-help'" },
     { "composite = { required = true }" = [ "string" ], env = "ref = 'defs.env-vars'", env_file = "ref = 'defs.env-file'", help = "ref = 'defs.script-help'", keep_going = "boolean" },
-],
+] },
     "string",
-]
+] }
 command-options = [ "string" ]
 dev-dependency = "string"
 dev-dependency-group = [ "ref = 'defs.dev-dependency'" ]

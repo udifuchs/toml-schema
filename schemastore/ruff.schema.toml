@@ -85,8 +85,7 @@ ConstantType = """enum = [
     "int",
     "str",
 ]"""
-Convention = [
-    "union",
+Convention = { union = [
     """enum = [
     "google",
 ]""",
@@ -96,26 +95,23 @@ Convention = [
     """enum = [
     "pep257",
 ]""",
-]
-Direction = [
-    "union",
+] }
+Direction = { union = [
     """enum = [
     "Dependencies",
 ]""",
     """enum = [
     "Dependents",
 ]""",
-]
-DocstringCodeLineWidth = [
-    "union",
+] }
+DocstringCodeLineWidth = { union = [
     "ref = 'defs.LineWidth'",
     "enum = [ 'dynamic' ]",
-]
-ImportSection = [
-    "union",
+] }
+ImportSection = { union = [
     "ref = 'defs.ImportType'",
     "string",
-]
+] }
 ImportType = """enum = [
     "future",
     "standard-library",
@@ -123,18 +119,16 @@ ImportType = """enum = [
     "first-party",
     "local-folder",
 ]"""
-IndentStyle = [
-    "union",
+IndentStyle = { union = [
     """enum = [
     "tab",
 ]""",
     """enum = [
     "space",
 ]""",
-]
+] }
 IndentWidth = "integer = { min = 1, max = 255 }"
-LineEnding = [
-    "union",
+LineEnding = { union = [
     """enum = [
     "auto",
 ]""",
@@ -147,7 +141,7 @@ LineEnding = [
     """enum = [
     "native",
 ]""",
-]
+] }
 LineLength = "integer = { min = 1, max = 320 }"
 LineWidth = "integer = { min = 1, max = 65535 }"
 NameImports = "string"
@@ -187,29 +181,27 @@ PythonVersion = """enum = [
     "py312",
     "py313",
 ]"""
-Quote = [
-    "union",
+Quote = { union = [
     """enum = [
     "double",
 ]""",
     """enum = [
     "single",
 ]""",
-]
+] }
 QuoteStyle = """enum = [
     "single",
     "double",
     "preserve",
 ]"""
-RelativeImportsOrder = [
-    "union",
+RelativeImportsOrder = { union = [
     """enum = [
     "closest-to-furthest",
 ]""",
     """enum = [
     "furthest-to-closest",
 ]""",
-]
+] }
 RequiredVersion = "string"
 RuleSelector = """enum = [
     "A",
@@ -1604,15 +1596,14 @@ RuleSelector = """enum = [
     "YTT302",
     "YTT303",
 ]"""
-Strictness = [
-    "union",
+Strictness = { union = [
     """enum = [
     "parents",
 ]""",
     """enum = [
     "all",
 ]""",
-]
+] }
 
 ["defs = { hidden = true }".AnalyzeOptions]
 detect-string-imports = "boolean"

@@ -108,6 +108,7 @@ class SchemaKey(SchemaElement):
     required: bool = False
     hidden: bool = False
     pattern: Optional[str] = None
+    union: Optional[str] = None
     _regex: Optional[re.Pattern[str]] = dataclasses.field(init=False, default=None)
 
     def __post_init__(self) -> None:
@@ -118,6 +119,9 @@ class SchemaKey(SchemaElement):
                 raise SchemaError(
                     "Wildcard key '*' cannot be marked as required.", self._address
                 )
+
+        if self.name == "union" and self.union is None:
+            object.__setattr__(self, "union", "any")
 
         if self.pattern is not None:
             if self.name != "pattern":
@@ -321,10 +325,6 @@ class AnyValue(SchemaElement):
         """Validating value for any-value type is always successful."""
 
 
-class Union(SchemaElement):
-    """A marker for a union of TOML schema types."""
-
-
 class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
     """Table schema container."""
 
@@ -349,7 +349,7 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
                 set_root_in_table(schema_value, root)
             if isinstance(schema_value, Array):
                 set_root_in_array(schema_value, root)
-            if isinstance(schema_value, UnionContainer):
+            if isinstance(schema_value, Union):
                 set_root_in_union(schema_value, root)
 
         def set_root_in_table(table: Table, root: Table) -> None:
@@ -360,7 +360,7 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
             for schema_value in array:
                 set_root_in_element(schema_value, root)
 
-        def set_root_in_union(union: UnionContainer, root: Table) -> None:
+        def set_root_in_union(union: Union, root: Table) -> None:
             for schema_value in union:
                 set_root_in_element(schema_value, root)
 
@@ -519,10 +519,6 @@ class Array(SchemaElement, list[SchemaElement]):
 
         if len(self) == 0:
             raise SchemaError("Empty array not allowed in schema.", _address)
-        if any(isinstance(schema, Union) for schema in schema_list):
-            raise SchemaError(
-                "'union' must be first element in array schema.", _address
-            )
         if len(self) > 1:
             raise SchemaError(
                 "More than one element not allowed in array schema.", _address
@@ -546,7 +542,7 @@ class Array(SchemaElement, list[SchemaElement]):
             schema.validate(element, context=f"{context}[{index}]")
 
 
-class UnionContainer(SchemaElement, list[SchemaElement]):
+class Union(SchemaElement, list[SchemaElement]):
     """Union schema container."""
 
     def __init__(
@@ -561,10 +557,6 @@ class UnionContainer(SchemaElement, list[SchemaElement]):
 
         if any(sum(1 for elem_2 in self if elem_1 == elem_2) > 1 for elem_1 in self):
             raise SchemaError("Union must not have duplicates.", _address)
-        if any(isinstance(schema, Union) for schema in self):
-            raise SchemaError(
-                "'union' must only be first element in array schema.", _address
-            )
         if len(self) < 2:
             raise SchemaError("Union should contain at least 2 type options.", _address)
         if any(isinstance(value, AnyValue) for value in self):
@@ -572,10 +564,10 @@ class UnionContainer(SchemaElement, list[SchemaElement]):
 
     def __str__(self) -> str:
         schemas = [str(schema) for schema in self]
-        return f"""[ "union", {", ".join(schemas)} ]"""
+        return f"""{{ union = [ {", ".join(schemas)} ] }}"""
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, UnionContainer):
+        if not isinstance(other, Union):
             return False
         return all(element in other for element in self) and len(self) == len(other)
 
@@ -678,19 +670,31 @@ def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
 
 def _create_schema(toml_value: TOMLValue, _address: str) -> SchemaElement:
     if isinstance(toml_value, dict):
+        schema_keys = [_create_key(key, _address) for key in toml_value]
+        if any(key.union is not None for key in schema_keys):
+            if len(toml_value) != 1:
+                raise SchemaError(
+                    "Union table must contain exactly one element.", _address
+                )
+            toml_union = next(iter(toml_value.values()))
+            if not isinstance(toml_union, list):
+                raise SchemaError("Union value must be a list.", _address)
+            # Create schema union:
+            schema_union = [
+                _create_schema(value, _address=f"{_address}[{index}]")
+                for index, value in enumerate(toml_union)
+            ]
+            return Union(schema_union, _address=_address)
+
         # Create schema table:
         return from_toml_table(toml_value, is_root=False, _address=_address)
 
     if isinstance(toml_value, list):
-        # Create array or union schema:
+        # Create schema array:
         schema_list = [
             _create_schema(value, _address=f"{_address}[{index}]")
             for index, value in enumerate(toml_value)
         ]
-
-        if len(schema_list) > 0 and isinstance(schema_list[0], Union):
-            return UnionContainer(schema_list[1:], _address=_address)
-
         return Array(schema_list, _address=_address)
 
     if isinstance(toml_value, str):
@@ -716,6 +720,8 @@ def from_toml_table(
         )
         for key, value in toml_table.items()
     }
+    if any(key.union is not None for key in schema_table):
+        raise SchemaError("'union' cannot be a schema key", _address)
     return Table(
         schema_table, toml_filename=toml_filename, is_root=is_root, _address=_address
     )
@@ -733,7 +739,6 @@ TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
     "date": {},
     "time": {},
     "any-value": {},
-    "union": {},
     "ref": "string",
     "file": "string",
 }
@@ -742,14 +747,20 @@ TYPES_SCHEMA = from_toml_table(TYPES_SCHEMA_TABLE)
 
 KEY_SCHEMA_TABLE: dict[str, TOMLValue] = {
     "pattern": "string",
-    "*": [
-        "union",
-        {"required": "boolean"},
-        {"hidden": "boolean"},
-    ],
+    # "union": "enum = [ 'any', 'all', 'one', 'none' ]"
+    "*": {
+        "union": [
+            {"required": "boolean"},
+            {"hidden": "boolean"},
+        ]
+    },
 }
 
 KEY_SCHEMA = from_toml_table(KEY_SCHEMA_TABLE)
+# Work around the fact that "union" cannot be a schema key:
+_union_key = SchemaKey(name="union-key")
+object.__setattr__(_union_key, "name", "union")
+KEY_SCHEMA[_union_key] = Enum(enum=["any", "all", "one", "none"])
 
 
 def from_file(toml_filename: str) -> Table:

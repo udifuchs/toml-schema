@@ -27,8 +27,7 @@ unstable-flags = [ "string" ]
 "*" = "ref = 'defs.TargetConfig'"
 
 ["defs = { hidden = true }"]
-AuditWheelMode = [
-    "union",
+AuditWheelMode = { union = [
     """enum = [
     "repair",
 ]""",
@@ -38,9 +37,8 @@ AuditWheelMode = [
     """enum = [
     "skip",
 ]""",
-]
-CargoCrateType = [
-    "union",
+] }
+CargoCrateType = { union = [
     """enum = [
     "bin",
 ]""",
@@ -59,43 +57,38 @@ CargoCrateType = [
     """enum = [
     "staticlib",
 ]""",
-]
-Format = [
-    "union",
+] }
+Format = { union = [
     """enum = [
     "sdist",
 ]""",
     """enum = [
     "wheel",
 ]""",
-]
-Formats = [
-    "union",
+] }
+Formats = { union = [
     "ref = 'defs.Format'",
     [ "ref = 'defs.Format'" ],
-]
-GlobPattern = [
-    "union",
+] }
+GlobPattern = { union = [
     "string",
     { "format = { required = true }" = "ref = 'defs.Formats'", "path = { required = true }" = "string", "*" = "any-value" },
-]
-PlatformTag = [
-    "union",
+] }
+PlatformTag = { union = [
     { "Manylinux = { required = true }" = { "x = { required = true }" = "integer = { min = 0, max = 65535 }", "y = { required = true }" = "integer = { min = 0, max = 65535 }", "*" = "any-value" } },
     { "Musllinux = { required = true }" = { "x = { required = true }" = "integer = { min = 0, max = 65535 }", "y = { required = true }" = "integer = { min = 0, max = 65535 }", "*" = "any-value" } },
     """enum = [
     "Linux",
 ]""",
-]
-SdistGenerator = [
-    "union",
+] }
+SdistGenerator = { union = [
     """enum = [
     "cargo",
 ]""",
     """enum = [
     "git",
 ]""",
-]
+] }
 
 ["defs = { hidden = true }".CargoTarget]
 kind = "ref = 'defs.CargoCrateType'"
