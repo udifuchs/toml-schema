@@ -111,7 +111,7 @@ env-file = { union = [
 ] }
 script-help = "string"
 pdm-script = { union = [
-    { union = [
+    { "union = 'one'" = [
     { "call = { required = true }" = "string", env = "ref = 'defs.env-vars'", env_file = "ref = 'defs.env-file'", help = "ref = 'defs.script-help'" },
     { "cmd = { required = true }" = { union = [
     "string",

@@ -4,7 +4,7 @@ obsoletes = [ "string" ]
 zip-safe = "boolean"
 script-files = [ "string" ]
 eager-resources = [ "string" ]
-packages = { union = [
+packages = { "union = 'one'" = [
     [ "ref = 'defs.package-name'" ],
     "ref = 'defs.find-directive'",
 ] }
@@ -32,7 +32,7 @@ license-files = [ "string" ]
 "*" = "any-value"
 
 [dynamic]
-version = { union = [
+version = { "union = 'one'" = [
     "ref = 'defs.attr-directive'",
     "ref = 'defs.file-directive'",
 ] }
@@ -50,16 +50,13 @@ readme = { union = [
 
 ["defs = { hidden = true }"]
 package-name = "string"
-file-directive-for-dependencies = { union = [
-    { },
-    "ref = 'defs.file-directive'",
-] }
+file-directive-for-dependencies = "ref = 'defs.file-directive'"
 
 ["defs = { hidden = true }".ext-module]
 "name = { required = true }" = "string"
 "sources = { required = true }" = [ "string" ]
 include-dirs = [ "string" ]
-define-macros = [ [ { } ] ]
+define-macros = [ [ "string" ] ]
 undef-macros = [ "string" ]
 library-dirs = [ "string" ]
 libraries = [ "string" ]

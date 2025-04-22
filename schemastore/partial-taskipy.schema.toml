@@ -4,13 +4,13 @@ settings = "ref = 'defs.Settings'"
 "pattern = '^.+$'" = "ref = 'defs.Task'"
 
 [variables]
-"pattern = '^[0-9a-zA-Z]+$'" = { union = [
+"pattern = '^[0-9a-zA-Z]+$'" = { "union = 'one'" = [
     "ref = 'defs.VariableValue'",
     "ref = 'defs.Variable'",
 ] }
 
 ["defs = { hidden = true }"]
-Task = { union = [
+Task = { "union = 'one'" = [
     "ref = 'defs.Command'",
     { "cmd = { required = true }" = "ref = 'defs.Command'", help = "string = { min-len = 1 }", use_vars = "ref = 'defs.UseVars'", cwd = "ref = 'defs.Cwd'", "*" = "any-value" },
 ] }

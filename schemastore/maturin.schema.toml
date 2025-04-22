@@ -74,7 +74,7 @@ GlobPattern = { union = [
     "string",
     { "format = { required = true }" = "ref = 'defs.Formats'", "path = { required = true }" = "string", "*" = "any-value" },
 ] }
-PlatformTag = { union = [
+PlatformTag = { "union = 'one'" = [
     { "Manylinux = { required = true }" = { "x = { required = true }" = "integer = { min = 0, max = 65535 }", "y = { required = true }" = "integer = { min = 0, max = 65535 }", "*" = "any-value" } },
     { "Musllinux = { required = true }" = { "x = { required = true }" = "integer = { min = 0, max = 65535 }", "y = { required = true }" = "integer = { min = 0, max = 65535 }", "*" = "any-value" } },
     """enum = [

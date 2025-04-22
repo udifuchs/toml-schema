@@ -11,7 +11,7 @@ Platform = """enum = [
     "windows",
     "macos",
 ]"""
-Override = { }
+Override = "any-value"
 
 ["defs = { hidden = true }".Format]
 config-path = "string"

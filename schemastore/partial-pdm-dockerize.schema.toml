@@ -9,7 +9,7 @@ env_file = "string"
 
 ["defs = { hidden = true }"]
 fnmatch-filter = "string"
-selector = { union = [
+selector = { "union = 'one'" = [
     "ref = 'defs.fnmatch-filter'",
     [ "ref = 'defs.fnmatch-filter'" ],
 ] }

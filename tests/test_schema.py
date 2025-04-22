@@ -622,6 +622,82 @@ def test_union_merge_tables() -> None:
     )
 
 
+def test_union_modes() -> None:
+    """Test union modes 'all', 'one' and 'none'."""
+    schema = toml_schema.loads("""number = { "union = 'all'" = [
+        { foo = "string", bar = "integer" },
+        { foo = "string", bar = "float" },
+    ] }""")
+    schema.validate({"number": {"foo": "yes"}})
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"number": {"bar": 3.3}})
+    assert (
+        str(exc_info.value)
+        == "'number': Value {'bar': 3.3} does not match all in union."
+    )
+
+    schema = toml_schema.loads("""number = { "union = 'one'" = [
+        { foo = "string", bar = "integer" },
+        { foo = "string", bar = "float" },
+    ] }""")
+    schema.validate({"number": {"bar": 3.3}})
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"number": {"foo": "yes"}})
+    assert (
+        str(exc_info.value)
+        == "'number': Value {'foo': 'yes'} does not match exactly one in union."
+    )
+
+    # Example from poetry schema:
+    schema = toml_schema.loads(r'''
+    [[source]]
+    union = [
+        { "name = { required = true }" = "enum = [ 'pypi' ]", priority = """enum = [
+            "default",
+            "primary",
+            "secondary",
+            "supplemental",
+            "explicit",
+        ]""" },
+
+        { "name = { required = true }" = { "union = 'all'" = [
+            "string",
+            { "union = 'none'" = [
+                "enum = [ 'pypi' ]",
+            ] },
+        ] }, "url = { required = true }" = "ref = 'format.uri'", priority = """enum = [
+            "default",
+            "primary",
+            "secondary",
+            "supplemental",
+            "explicit",
+        ]""" },
+    ]
+
+    ["format = { hidden = true }"]
+    uri = "pattern = '^\\w+:(\\/?\\/?)[^\\s]+\\Z'"
+    ''')
+    schema.validate({"source": [{"name": "pypi", "priority": "default"}]})
+    schema.validate({"source": [{"name": "internal", "url": "https://example.com/"}]})
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"source": [{"name": "pypi", "url": "https://example.com/"}]})
+    assert (
+        str(exc_info.value) == "'source[0]': "
+        "Value {'name': 'pypi', 'url': 'https://example.com/'} not in union."
+    )
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"source": [{"name": "internal"}]})
+    assert (
+        str(exc_info.value) == "'source[0]': Value {'name': 'internal'} not in union."
+    )
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"source": [{"name": "pypi", "priority": 3}]})
+    assert (
+        str(exc_info.value) == "'source[0]': "
+        "Value {'name': 'pypi', 'priority': 3} not in union."
+    )
+
+
 def test_check_error() -> None:
     """Test errors raised during check."""
     toml = """

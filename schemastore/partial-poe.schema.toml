@@ -48,29 +48,29 @@ type = """enum = [
 "*" = "string"
 
 [tasks]
-"pattern = '^[a-zA-Z_][a-zA-Z0-9_:-]*$'" = { union = [
+"pattern = '^[a-zA-Z_][a-zA-Z0-9_:-]*$'" = { "union = 'one'" = [
     "ref = 'defs.one_of_tasks'",
     "ref = 'defs.tasks_array'",
 ] }
 
 ["defs = { hidden = true }"]
-cmd_task = { union = [
+cmd_task = { "union = 'all'" = [
     "ref = 'defs.common_task'",
     { "cmd = { required = true }" = "string", "*" = "any-value" },
 ] }
-expr_task = { union = [
+expr_task = { "union = 'all'" = [
     "ref = 'defs.common_task'",
     { assert = "boolean", "expr = { required = true }" = "string", imports = [ "string" ], "*" = "any-value" },
 ] }
-ref_task = { union = [
+ref_task = { "union = 'all'" = [
     "ref = 'defs.common_task'",
     { "ref = { required = true }" = "string", "*" = "any-value" },
 ] }
-script_task = { union = [
+script_task = { "union = 'all'" = [
     "ref = 'defs.common_task'",
     { print_result = "boolean", "script = { required = true }" = "string", "*" = "any-value" },
 ] }
-sequence_task = { union = [
+sequence_task = { "union = 'all'" = [
     "ref = 'defs.common_task'",
     { default_item_type = "string", ignore_fail = { union = [
     "boolean",
@@ -80,14 +80,14 @@ sequence_task = { union = [
 ]""",
 ] }, "sequence = { required = true }" = "ref = 'defs.tasks_array'", "*" = "any-value" },
 ] }
-shell_task = { union = [
+shell_task = { "union = 'all'" = [
     "ref = 'defs.common_task'",
     { interpreter = { union = [
     "string",
     [ "string" ],
 ] }, "shell = { required = true }" = "string", "*" = "any-value" },
 ] }
-switch_task = { union = [
+switch_task = { "union = 'all'" = [
     "ref = 'defs.common_task'",
     { "control = { required = true }" = "ref = 'defs.one_of_tasks'", default = """enum = [
     "pass",
@@ -97,7 +97,7 @@ switch_task = { union = [
     [ "string" ],
 ] }, "*" = "any-value" } ], "*" = "any-value" },
 ] }
-one_of_tasks = { union = [
+one_of_tasks = { "union = 'one'" = [
     "string",
     "ref = 'defs.cmd_task'",
     "ref = 'defs.script_task'",

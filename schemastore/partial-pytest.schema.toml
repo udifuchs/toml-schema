@@ -1,4 +1,4 @@
-ini_options = { union = [
+ini_options = { "union = 'all'" = [
     "ref = 'defs.IniOptions'",
     "ref = 'defs.IniOptionsAsyncio'",
 ] }
@@ -11,7 +11,7 @@ AsyncioScope = """enum = [
     "package",
     "session",
 ]"""
-LogLevel = { union = [
+LogLevel = { "union = 'one'" = [
     "integer = { min = 0 }",
     """enum = [
     "CRITICAL",
@@ -153,7 +153,7 @@ xfail_strict = "boolean"
 ["defs = { hidden = true }".IniOptionsAsyncio]
 asyncio_default_fixture_loop_scope = "string"
 asyncio_default_test_loop_scope = "string"
-asyncio_mode = { union = [
+asyncio_mode = { "union = 'one'" = [
     "enum = [ 'auto' ]",
     "enum = [ 'strict' ]",
 ] }

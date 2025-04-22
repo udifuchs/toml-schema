@@ -73,7 +73,7 @@ CacheKey = { union = [
     { "git = { required = true }" = "ref = 'defs.GitPattern'" },
     { "env = { required = true }" = "string" },
 ] }
-ConfigSettingValue = { union = [
+ConfigSettingValue = { "union = 'one'" = [
     { "String = { required = true }" = "string" },
     { "List = { required = true }" = [ "string" ] },
 ] }

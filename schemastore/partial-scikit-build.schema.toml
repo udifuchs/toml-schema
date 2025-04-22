@@ -1,4 +1,4 @@
-generate = [ { union = [
+generate = [ { "union = 'one'" = [
     { "path = { required = true }" = "string = { min-len = 1 }", "template = { required = true }" = "string = { min-len = 1 }", location = """enum = [
     "install",
     "build",
@@ -30,7 +30,7 @@ source-dir = "string"
 targets = [ "string" ]
 
 [cmake.define]
-"pattern = '.+'" = { union = [
+"pattern = '.+'" = { "union = 'one'" = [
     { union = [
     "string",
     "boolean",

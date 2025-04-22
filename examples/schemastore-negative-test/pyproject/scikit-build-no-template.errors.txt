@@ -1,1 +1,1 @@
-'tool.scikit-build.generate[0]': Value {'path': 'sample', 'location': 'install'} not in union.
+'tool.scikit-build.generate[0]': Value {'path': 'sample', 'location': 'install'} does not match exactly one in union.

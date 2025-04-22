@@ -548,16 +548,18 @@ class Union(SchemaElement, list[SchemaElement]):
     def __init__(
         self,
         schema_list: Sequence[SchemaElement],
+        mode: str,
         /,
         *,
         _address: str = "",
     ) -> None:
         SchemaElement.__init__(self, _address=_address)
         list.__init__(self, schema_list)
+        self.mode = mode
 
         if any(sum(1 for elem_2 in self if elem_1 == elem_2) > 1 for elem_1 in self):
             raise SchemaError("Union must not have duplicates.", _address)
-        if len(self) < 2:
+        if len(self) < 2 and self.mode != "none":
             raise SchemaError("Union should contain at least 2 type options.", _address)
         if any(isinstance(value, AnyValue) for value in self):
             raise SchemaError("'any-value' cannot be part of a union schema.", _address)
@@ -574,17 +576,35 @@ class Union(SchemaElement, list[SchemaElement]):
     def validate(self, value: TOMLValue, /, *, context: str) -> None:
         """Validate union type."""
         # For union do not call super().
+        valid_count = 0
         for schema_option in self:
             try:
                 schema_option.validate(value, context=context)
             except SchemaError:  # noqa: PERF203
-                pass
+                if self.mode == "none":
+                    return
             else:
-                return
+                if self.mode == "any":
+                    return
+                valid_count += 1
+
+        if self.mode == "one" and valid_count == 1:
+            return
+        if self.mode == "all" and valid_count == len(self):
+            return
+        error_message = (
+            "not"
+            if self.mode == "any"
+            else "does not match all"
+            if self.mode == "all"
+            else "does not match exactly one"
+            if self.mode == "one"
+            else "does not match none"  # if self.mode == "none"
+        )
         if len(str(self)) > 80:
             # No point showing union if it is very long:
-            raise SchemaError(f"Value {value} not in union.", context)
-        raise SchemaError(f"Value {value} not in: {self}", context)
+            raise SchemaError(f"Value {value} {error_message} in union.", context)
+        raise SchemaError(f"Value {value} {error_message} in: {self}", context)
 
 
 def _create_key(key: str, _address: str) -> SchemaKey:
@@ -611,7 +631,7 @@ def _create_key(key: str, _address: str) -> SchemaKey:
         _address=_address,
         **(
             key_toml  # For example: {"pattern": "^[a-z]*$"}
-            if key_name == "pattern"
+            if key_name in ("pattern", "union")
             else key_toml[key_name]  # For example: {"name": {"required": True}}
         ),  # type: ignore[arg-type]
     )
@@ -684,7 +704,8 @@ def _create_schema(toml_value: TOMLValue, _address: str) -> SchemaElement:
                 _create_schema(value, _address=f"{_address}[{index}]")
                 for index, value in enumerate(toml_union)
             ]
-            return Union(schema_union, _address=_address)
+            union_mode = cast(str, schema_keys[0].union)
+            return Union(schema_union, union_mode, _address=_address)
 
         # Create schema table:
         return from_toml_table(toml_value, is_root=False, _address=_address)

@@ -18,7 +18,7 @@ build = { union = [
     "string",
     [ "string" ],
 ] }
-build-frontend = { union = [
+build-frontend = { "union = 'one'" = [
     """enum = [
     "pip",
     "build",
@@ -48,7 +48,7 @@ config-settings = { union = [
     [ "string" ],
 ] } },
 ] }
-container-engine = { union = [
+container-engine = { "union = 'one'" = [
     """enum = [
     "docker",
     "podman",
@@ -65,7 +65,7 @@ container-engine = { union = [
 ]""", create-args = [ "string" ], disable-host-mount = "boolean" },
 ] }
 dependency-versions = "string"
-enable = { union = [
+enable = { "union = 'one'" = [
     "ref = 'defs.enable'",
     [ "ref = 'defs.enable'" ],
 ] }

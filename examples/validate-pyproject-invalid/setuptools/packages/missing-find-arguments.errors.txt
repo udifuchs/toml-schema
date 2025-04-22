@@ -1,1 +1,1 @@
-'tool.setuptools.packages': Value {'find': ''} not in union.
+'tool.setuptools.packages': Value {'find': ''} does not match exactly one in union.

@@ -53,9 +53,6 @@ JSON_IGNORE = (
     "$$description",  # Used by https://github.com/pypa/setuptools/config/setuptools.schema.json
 )
 JSON_TODO = (
-    "if",
-    "then",
-    "else",
     "dependencies",
     "minProperties",  # Shows up only in json object.
     "propertyNames",  # Shows up only in json object.
@@ -80,6 +77,49 @@ def handle_poe_min_len(key: str, json_object: dict[str, Any]) -> None:
         assert key == '"defs = { hidden = true }".common_task.cwd'
         assert global_filename == "partial-poe.json"
         info(f"{key}: Redundant minLength in pattern")
+
+
+def handle_hatch_empty_override() -> str | None:
+    if global_filename == "hatch.json":
+        return '"any-value"'
+    return None
+
+
+def handle_poetry_source(key: str, json_object: dict[str, Any]) -> bool:
+    if global_filename != "partial-poetry.json" or key != "source":
+        return False
+
+    warning(f"{key}: Manual handling of poetry key.")
+    json_object.pop("items")
+    assert global_toml_file is not None
+    global_toml_file.write('''
+source = [
+    { union = [
+        { "name = { required = true }" = "enum = [ 'pypi' ]", priority = """enum = [
+            "default",
+            "primary",
+            "secondary",
+            "supplemental",
+            "explicit",
+        ]""" },
+
+        { "name = { required = true }" = { "union = 'all'" = [
+            "string",
+            { "union = 'none'" = [
+                "enum = [ 'pypi' ]",
+            ] },
+        ] }, "url = { required = true }" = "ref = 'format.uri'", priority = """enum = [
+            "default",
+            "primary",
+            "secondary",
+            "supplemental",
+            "explicit",
+        ]""" },
+    ] }
+]
+
+''')
+    return True
 
 
 def get_toml_element(  # noqa: C901, PLR0911
@@ -124,10 +164,10 @@ def get_toml_element(  # noqa: C901, PLR0911
         return get_toml_ref(key, json_object)
 
     warning(f"{key}: Missing type in: {json_object}")
-    return "{ }"
+    return handle_hatch_empty_override()
 
 
-def get_toml_type(key: str, json_object: dict[str, Any], *, inline: bool) -> str | None:
+def get_toml_type(key: str, json_object: dict[str, Any], *, inline: bool) -> str | None:  # noqa: C901
     json_type = json_object.pop("type")
     if "$ref" in json_object:
         ref = json_object.pop("$ref")
@@ -145,6 +185,9 @@ def get_toml_type(key: str, json_object: dict[str, Any], *, inline: bool) -> str
     if "anyOf" in json_object:
         any_of = json_object.pop("anyOf")
         warning(f"{key}: 'anyOf' in json type ignored: {any_of}")
+
+    if handle_poetry_source(key, json_object):
+        return None
 
     if json_type == "object":
         return get_toml_table(key, json_object, inline=inline)
@@ -399,6 +442,9 @@ def get_toml_array(key: str, json_object: dict[str, Any]) -> str:
     else:
         warning(f"{key}: Array without items")
         json_items = {"type": "any-value"}
+    if isinstance(json_items, list):
+        warning(rf"{key}: No support for 'items' list: {json_items}")
+        json_items = json_items[0]
     toml_type = get_toml_element(key, json_items, inline=True)
     if json_object != {}:
         raise Exception(f"Extra keys: {key}: {json_object}")
@@ -420,22 +466,25 @@ def get_toml_pattern(key: str, json_object: dict[str, Any]) -> str | None:
     return f'"""\n    pattern = {pattern!r}\n"""'
 
 
-def get_toml_union(  # noqa: C901, PLR0912
+def get_toml_union(  # noqa: C901, PLR0912, PLR0915
     key: str, json_object: dict[str, Any]
 ) -> str | None:
     if "anyOf" in json_object:
         union_list = json_object.pop("anyOf")
+        union_mode = "any"
     elif "oneOf" in json_object:
         # anyOf and oneOf are almost identical when used as unions.
         union_list = json_object.pop("oneOf")
         try:
             union_types = [elem["type"] for elem in union_list]
         except KeyError:
-            warning(f"{key}: oneOf is treated as anyOf: {union_list}")
+            info(f"{key}: Check if oneOf could be replaced with anyOf.")
+            union_mode = "one"
         else:
             if len(union_types) == len(set(union_types)):
                 # All types are different:
                 info(f"{key}: oneOf is treated as anyOf: {union_types}")
+                union_mode = "any"
             elif len(set(union_types)) == 1 and union_types[0] == "string":
                 try:
                     union_enums = [
@@ -446,15 +495,20 @@ def get_toml_union(  # noqa: C901, PLR0912
                     if len(union_enums) == len(set(union_enums)):
                         # All types are enum strings with different values:
                         info(f"{key}: oneOf is treated as anyOf: {union_enums}")
+                        union_mode = "any"
                     else:
-                        warning(f"{key}: oneOf for enums is treated as anyOf.")
+                        info(f"{key}: Check if oneOf could be replaced with anyOf.")
+                        union_mode = "one"
                 except KeyError:
-                    warning(f"{key}: oneOf is treated as anyOf.")
+                    info(f"{key}: Check if oneOf could be replaced with anyOf.")
+                    union_mode = "one"
             else:
-                warning(f"{key}: oneOf is treated as anyOf.")
+                info(f"{key}: Check if oneOf could be replaced with anyOf.")
+                union_mode = "one"
     elif "allOf" in json_object:
-        warning(f"{key}: allOf is treated as anyOf.")
         union_list = json_object.pop("allOf")
+        info(f"{key}: Check if allOf could be replaced with anyOf.")
+        union_mode = "all"
     else:
         return None
 
@@ -467,7 +521,7 @@ def get_toml_union(  # noqa: C901, PLR0912
     union_types = []
     for i, json_item in enumerate(union_list):
         typ = get_toml_element(key, json_item, inline=True)
-        if typ != '"null"':
+        if typ != '"null"' and typ is not None:
             union_types.append(typ)
         if json_item != {}:
             raise Exception(f"Extra keys: {key}[{i}]: {json_item}")
@@ -476,7 +530,9 @@ def get_toml_union(  # noqa: C901, PLR0912
         assert isinstance(union_types[0], str)
         return union_types[0]
     union_str = ",\n    ".join(union_types)
-    return f"{{ union = [\n    {union_str},\n] }}"
+    if union_mode == "any":
+        return f"{{ union = [\n    {union_str},\n] }}"
+    return f'{{ "union = {union_mode!r}" = [\n    {union_str},\n] }}'
 
 
 def get_json_defs(key: str, json_object: dict[str, Any]) -> None:
