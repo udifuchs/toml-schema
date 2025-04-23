@@ -551,6 +551,10 @@
       "title": "Build",
       "description": "Build configuration",
       "type": "object",
+      "anyOf": [
+        { "properties": { "dev-mode-dirs": false } },
+        { "properties": { "dev-mode-exact": false } }
+      ],
       "properties": {
         "ignore-vcs": {
           "title": "Ignore VCS in file selection",
@@ -758,12 +762,8 @@
           },
           "type": "object",
           "properties": {
-            "main": {
-                "type": "boolean"
-            },
-            "test": {
-                "type": "boolean"
-            }
+            "main": false,
+            "test": false
           },
           "additionalProperties": {
             "type": "object",

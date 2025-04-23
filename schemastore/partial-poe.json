@@ -7,60 +7,6 @@
   "title": "Poe the Poet configuration",
   "description": "Poe the Poet is a task runner and build tool that uses simple configuration to define project tasks. It can work as a standalone tool or as a plugin for Poetry.",
   "definitions": {
-    "args": {
-      "properties": {
-        "default": {
-          "description": "The default value for the argument when not provided.",
-          "anyOf": [
-            { "type": "string" },
-            { "type": "integer" },
-            { "type": "number" },
-            { "type": "boolean" },
-            { "type": "null" }
-          ]
-        },
-        "help": {
-          "description": "A short description of the argument to include in the documentation of the task.",
-          "type": "string"
-        },
-        "multiple": {
-          "description": "Indicates if multiple values are allowed for the argument.",
-          "anyOf": [{ "type": "boolean" }, { "type": "integer" }]
-        },
-        "name": {
-          "description": "The name of the argument.",
-          "type": "string"
-        },
-        "options": {
-          "description": "A list of options to be provided along with the argument.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "positional": {
-          "description": "Indicates if the argument is positional.",
-          "type": "boolean"
-        },
-        "required": {
-          "description": "Indicates if the argument is required.",
-          "type": "boolean"
-        },
-        "type": {
-          "description": "The type of the argument.",
-          "anyOf": [
-            { "type": "string" },
-            { "type": "array" },
-            { "type": "object" },
-            { "type": "boolean" },
-            { "type": "number" },
-            { "type": "null" }
-          ]
-        }
-      },
-      "required": ["name"],
-      "type": "object"
-    },
     "cmd_task": {
       "allOf": [
         {
@@ -97,7 +43,7 @@
                     "type": "string"
                   },
                   {
-                    "$ref": "#/definitions/args"
+                    "$ref": "#/definitions/common_task/properties/args/definitions/args"
                   }
                 ]
               },
@@ -105,11 +51,67 @@
             },
             {
               "additionalProperties": {
-                "$ref": "#/definitions/args"
+                "$ref": "#/definitions/common_task/properties/args/definitions/args"
               },
               "type": "object"
             }
           ],
+          "definitions": {
+            "args": {
+              "properties": {
+                "default": {
+                  "description": "The default value for the argument when not provided.",
+                  "anyOf": [
+                    { "type": "string" },
+                    { "type": "integer" },
+                    { "type": "number" },
+                    { "type": "boolean" },
+                    { "type": "null" }
+                  ]
+                },
+                "help": {
+                  "description": "A short description of the argument to include in the documentation of the task.",
+                  "type": "string"
+                },
+                "multiple": {
+                  "description": "Indicates if multiple values are allowed for the argument.",
+                  "anyOf": [{ "type": "boolean" }, { "type": "integer" }]
+                },
+                "name": {
+                  "description": "The name of the argument.",
+                  "type": "string"
+                },
+                "options": {
+                  "description": "A list of options to be provided along with the argument.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "positional": {
+                  "description": "Indicates if the argument is positional.",
+                  "type": "boolean"
+                },
+                "required": {
+                  "description": "Indicates if the argument is required.",
+                  "type": "boolean"
+                },
+                "type": {
+                  "description": "The type of the argument.",
+                  "anyOf": [
+                    { "type": "string" },
+                    { "type": "array" },
+                    { "type": "object" },
+                    { "type": "boolean" },
+                    { "type": "number" },
+                    { "type": "null" }
+                  ]
+                }
+              },
+              "required": ["name"],
+              "type": "object"
+            }
+          },
           "description": "Define CLI options, positional arguments, or flags that this task should accept."
         },
         "capture_stdout": {

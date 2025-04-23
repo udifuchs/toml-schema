@@ -123,8 +123,6 @@ disable = "boolean"
 "*" = "any-value"
 
 ["defs = { hidden = true }".PublishIndex.repos]
-main = "boolean"
-test = "boolean"
 
 ["defs = { hidden = true }".PublishIndex.repos."*"]
 url = "string"

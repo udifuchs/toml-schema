@@ -9,6 +9,20 @@
     "projectAuthor": {
       "type": "object",
       "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": ["name"],
+          "properties": {
+            "name": true
+          }
+        },
+        {
+          "required": ["email"],
+          "properties": {
+            "email": true
+          }
+        }
+      ],
       "properties": {
         "name": {
           "type": "string"
@@ -126,7 +140,7 @@
         },
         "version": {
           "type": "string",
-          "pattern": "^v?((([0-9]+)!)?([0-9]+(\\.[0-9]+)*)([-_\\.]?(alpha|a|beta|b|preview|pre|c|rc)[-_\\.]?([0-9]+)?)?((-([0-9]+))|([-_\\.]?(post|rev|r)[-_\\.]?([0-9]+)?))?([-_\\.]?(dev)[-_\\.]?([0-9]+)?)?)(\\+([a-z0-9]+([-_\\.][a-z0-9]+)*))?$",
+          "pattern": "^v?((([0-9]+)!)?([0-9]+(\\.[0-9]+)*)([-_\\.]?(alpha|a|beta|b|preview|pre|c|rc)[-_\\.]?([0-9]+)?)?((-([0-9]+))|([-_\\.]?(post|rev|r)[-_\\.]?([0-9]+)?))?([-_\\.]?(dev)[-_\\.]?([0-9]+)?)?)(\\+([a-zA-Z0-9]+([-_\\.][a-zA-Z0-9]+)*))?$",
           "title": "Project version",
           "description": "Version of the project, as defined in the [Version specifier specification](https://packaging.python.org/en/latest/specifications/version-specifiers/), and preferably [already normalized](https://packaging.python.org/en/latest/specifications/version-specifiers/#normalization).",
           "markdownDescription": "Version of the project, as defined in the [Version specifier specification](https://packaging.python.org/en/latest/specifications/version-specifiers/), and preferably [already normalized](https://packaging.python.org/en/latest/specifications/version-specifiers/#normalization).",
@@ -557,6 +571,25 @@
           "examples": [["version"]]
         }
       },
+      "oneOf": [
+        {
+          "required": ["dynamic"],
+          "properties": {
+            "dynamic": {
+              "type": "array",
+              "contains": {
+                "const": "version"
+              }
+            }
+          }
+        },
+        {
+          "required": ["version"],
+          "properties": {
+            "version": true
+          }
+        }
+      ],
       "dependencies": {
         "version": {
           "not": {

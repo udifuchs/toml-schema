@@ -397,6 +397,7 @@
           "default": "function"
         },
         "asyncio_mode": {
+          "type": "string",
           "oneOf": [
             {
               "const": "auto",

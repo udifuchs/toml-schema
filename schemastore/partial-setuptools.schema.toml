@@ -1,6 +1,6 @@
 platforms = [ "string" ]
-provides = [ "string" ]
-obsoletes = [ "string" ]
+provides = [ "ref = 'format.pep508-identifier'" ]
+obsoletes = [ "ref = 'format.pep508-identifier'" ]
 zip-safe = "boolean"
 script-files = [ "string" ]
 eager-resources = [ "string" ]
@@ -9,8 +9,8 @@ packages = { "union = 'one'" = [
     "ref = 'defs.find-directive'",
 ] }
 include-package-data = "boolean"
-namespace-packages = [ "string" ]
-py-modules = [ "string" ]
+namespace-packages = [ "ref = 'format.python-module-name-relaxed'" ]
+py-modules = [ "ref = 'format.python-module-name-relaxed'" ]
 ext-modules = [ "ref = 'defs.ext-module'" ]
 license-files = [ "string" ]
 
@@ -28,7 +28,7 @@ license-files = [ "string" ]
 "*" = "any-value"
 
 [cmdclass]
-"pattern = '^.*$'" = "string"
+"pattern = '^.*$'" = "ref = 'format.python-qualified-identifier'"
 "*" = "any-value"
 
 [dynamic]
@@ -49,11 +49,14 @@ readme = { union = [
 "pattern = '.+'" = "ref = 'defs.file-directive-for-dependencies'"
 
 ["defs = { hidden = true }"]
-package-name = "string"
+package-name = { union = [
+    "ref = 'format.python-module-name-relaxed'",
+    "ref = 'format.pep561-stub-name'",
+] }
 file-directive-for-dependencies = "ref = 'defs.file-directive'"
 
 ["defs = { hidden = true }".ext-module]
-"name = { required = true }" = "string"
+"name = { required = true }" = "ref = 'format.python-module-name-relaxed'"
 "sources = { required = true }" = [ "string" ]
 include-dirs = [ "string" ]
 define-macros = [ [ "string" ] ]
@@ -78,7 +81,7 @@ py-limited-api = "boolean"
 ] }
 
 ["defs = { hidden = true }".attr-directive]
-"attr = { required = true }" = "string"
+"attr = { required = true }" = "ref = 'format.python-qualified-identifier'"
 
 ["defs = { hidden = true }".find-directive]
 
@@ -87,3 +90,13 @@ where = [ "string" ]
 exclude = [ "string" ]
 include = [ "string" ]
 namespaces = "boolean"
+
+["format = { hidden = true }"]
+
+pep508-identifier = "pattern = '^.*$'"
+
+python-module-name-relaxed = "pattern = '^.*$'"
+
+python-qualified-identifier = "pattern = '^.*$'"
+
+pep561-stub-name = "pattern = '^.*$'"

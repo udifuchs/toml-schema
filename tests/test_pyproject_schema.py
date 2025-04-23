@@ -29,11 +29,6 @@ def list_toml_files() -> Generator[tuple[toml_schema.Table, pathlib.Path]]:
         yield schema, pathlib.Path("examples/python-packaging-guide/pyproject.toml")
 
         for path in pathlib.Path("examples/schemastore/pyproject").glob("**/*.toml"):
-            if str(path) in (
-                "examples/schemastore/pyproject/uv-sample-project.toml",
-                "examples/schemastore/pyproject/local-version-pep440.toml",
-            ):
-                continue  # TOML files that are failing require further investigation.
             yield schema, path
 
         for path in pathlib.Path("examples/validate-pyproject").glob("**/*.toml"):

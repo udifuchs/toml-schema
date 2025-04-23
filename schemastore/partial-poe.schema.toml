@@ -109,31 +109,6 @@ one_of_tasks = { "union = 'one'" = [
 ] }
 tasks_array = [ "ref = 'defs.one_of_tasks'" ]
 
-["defs = { hidden = true }".args]
-default = { union = [
-    "string",
-    "integer",
-    "float",
-    "boolean",
-] }
-help = "string"
-multiple = { union = [
-    "boolean",
-    "integer",
-] }
-"name = { required = true }" = "string"
-options = [ "string" ]
-positional = "boolean"
-required = "boolean"
-type = { union = [
-    "string",
-    [ "any-value" ],
-    { "*" = "any-value" },
-    "boolean",
-    "float",
-] }
-"*" = "any-value"
-
 ["defs = { hidden = true }".common_task]
 args = { union = [
     [ { union = [
@@ -165,3 +140,28 @@ use_exec = "boolean"
 
 ["defs = { hidden = true }".common_task.uses]
 "*" = "string"
+
+["defs = { hidden = true }".args]
+default = { union = [
+    "string",
+    "integer",
+    "float",
+    "boolean",
+] }
+help = "string"
+multiple = { union = [
+    "boolean",
+    "integer",
+] }
+"name = { required = true }" = "string"
+options = [ "string" ]
+positional = "boolean"
+required = "boolean"
+type = { union = [
+    "string",
+    [ "any-value" ],
+    { "*" = "any-value" },
+    "boolean",
+    "float",
+] }
+"*" = "any-value"

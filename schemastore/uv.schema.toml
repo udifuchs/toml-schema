@@ -73,9 +73,9 @@ CacheKey = { union = [
     { "git = { required = true }" = "ref = 'defs.GitPattern'" },
     { "env = { required = true }" = "string" },
 ] }
-ConfigSettingValue = { "union = 'one'" = [
-    { "String = { required = true }" = "string" },
-    { "List = { required = true }" = [ "string" ] },
+ConfigSettingValue = { union = [
+    "string",
+    [ "string" ],
 ] }
 ExcludeNewer = """
     pattern = '^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}:\\d{2}(Z|[+-]\\d{2}:\\d{2}))?$'

@@ -45,9 +45,9 @@
             "override": {
               "type": "string",
               "description": "Path to a file with env vars. Existing vars will be overwritten"
-            }
-          },
-          "additionalProperties": false
+            },
+            "additionalProperties": false
+          }
         },
         {
           "type": "string",

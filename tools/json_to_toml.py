@@ -71,18 +71,116 @@ FORMAT: dict[str, dict[str, str]] = {}
 # Specific handlers for JSON schemas with unusual combinations:
 
 
-def handle_poe_min_len(key: str, json_object: dict[str, Any]) -> None:
-    if "minLength" in json_object:
+def handle_pyproject_project_one_of(key: str, json_object: dict[str, Any]) -> None:
+    if global_filename == "pyproject.json" and key == "project":
+        one_of = json_object.pop("oneOf")
+        warning(f"{key}: ignoring item: oneOf = {one_of}")
+
+
+def handle_pyproject_project_author(key: str, json_object: dict[str, Any]) -> None:
+    if (
+        global_filename == "pyproject.json"
+        and key == '"defs = { hidden = true }".projectAuthor'
+    ):
+        any_of = json_object.pop("anyOf")
+        warning(f"{key}: ignoring item: anyOf = {any_of}")
+
+
+def handle_setuptools_readme(key: str, json_object: dict[str, Any]) -> None:
+    if (
+        global_filename == "partial-setuptools.json"  # fmt: skip
+        and key == "dynamic"
+    ):
+        json_object = json_object["properties"]["readme"]
+        json_type = json_object.pop("type")
+        warning(f"{key}: ignoring item: type = {json_type}")
+        required = json_object.pop("required")
+        json_object["anyOf"][1]["required"] = required
+        warning(f"{key}: key 'required' moved to expected location.")
+
+
+def handle_cibuildwheels_defs_description(
+    key: str, json_object: dict[str, Any]
+) -> None:
+    if (
+        global_filename == "partial-cibuildwheel.json"
+        and key == '"defs = { hidden = true }"'
+    ):
+        desc = json_object.pop("description")
+        warning(f"{key}: ignoring item: description = {desc}")
+
+
+def handle_poe_cwd_min_len(key: str, json_object: dict[str, Any]) -> None:
+    if (
+        global_filename == "partial-poe.json"
+        and key == '"defs = { hidden = true }".common_task.cwd'
+    ):
         json_object.pop("minLength")
-        assert key == '"defs = { hidden = true }".common_task.cwd'
-        assert global_filename == "partial-poe.json"
-        info(f"{key}: Redundant minLength in pattern")
+        warning(f"{key}: Redundant minLength in pattern")
 
 
 def handle_hatch_empty_override() -> str | None:
     if global_filename == "hatch.json":
         return '"any-value"'
     return None
+
+
+def handle_hatch_root_one_of(key: str, json_object: dict[str, Any]) -> None:
+    if global_filename == "hatch.json" and key == "":
+        one_of = json_object.pop("oneOf")
+        warning(f"{key}: Ignored 'oneOf': {one_of}")
+
+
+def handle_hatch_build_any_of(key: str, json_object: dict[str, Any]) -> None:
+    if (
+        global_filename == "hatch.json"  # fmt: skip
+        and key == '"defs = { hidden = true }".Build'
+    ):
+        any_of = json_object.pop("anyOf")
+        warning(f"{key}: ignoring item: anyOf = {any_of}")
+
+
+def handle_hatch_publish_index_repos(key: str, json_object: dict[str, Any]) -> None:
+    if (
+        global_filename == "hatch.json"
+        and key == '"defs = { hidden = true }".PublishIndex'
+    ):
+        json_object = json_object["properties"]["repos"]
+        properties = json_object.pop("properties")
+        warning(f"{key}.repos: ignoring item: properties = {properties}")
+
+
+def handle_pdm_env_file_override(key: str, json_object: dict[str, Any]) -> None:
+    if (
+        global_filename == "partial-pdm.json"
+        and key == '"defs = { hidden = true }".env-file'
+    ):
+        problem = json_object["anyOf"][0]
+        add_prop = problem["properties"].pop("additionalProperties")
+        problem["additionalProperties"] = add_prop
+        warning(f"{key}.env-file: bad location for additionalProperties = {add_prop}")
+
+
+def handle_poetry_git_dependency(key: str, json_object: dict[str, Any]) -> None:
+    if (
+        global_filename == "partial-poetry.json"
+        and key == '"defs = { hidden = true }".poetry-git-dependency'
+    ):
+        json_object = json_object["properties"]["git"]
+        json_type = json_object.pop("type")
+        json_object["anyOf"][0]["type"] = json_type
+        json_object["anyOf"][1]["type"] = json_type
+        warning(f"{key}: ignoring item: type = {json_type}")
+
+
+def handle_poetry_poetry_script_table(key: str, json_object: dict[str, Any]) -> None:
+    if (
+        global_filename == "partial-poetry.json"  # fmt: skip
+        and key == '"defs = { hidden = true }"'
+    ):
+        json_object = json_object["poetry-script-table"]
+        json_type = json_object.pop("type")
+        warning(f"{key}: ignoring redundant: type = {json_type}")
 
 
 def handle_poetry_source(key: str, json_object: dict[str, Any]) -> bool:
@@ -122,6 +220,25 @@ source = [
     return True
 
 
+def handle_poe_args_defs(key: str, json_defs: dict[str, Any] | None) -> None:
+    if (
+        global_filename == "partial-poe.json"  # fmt: skip
+        and json_defs is not None
+    ):
+        json_object = json_defs["common_task"]["properties"]["args"]
+        # Move 'args' definition to the top:
+        defs = json_object.pop("definitions")
+        json_defs["args"] = defs["args"]
+        # Reassign references to 'args' definition:
+        old_def = "#/definitions/common_task/properties/args/definitions/args"
+        new_def = "#/definitions/args"
+        assert json_object["anyOf"][0]["items"]["anyOf"][1]["$ref"] == old_def
+        json_object["anyOf"][0]["items"]["anyOf"][1]["$ref"] = new_def
+        assert json_object["anyOf"][1]["additionalProperties"]["$ref"] == old_def
+        json_object["anyOf"][1]["additionalProperties"]["$ref"] = new_def
+        warning(f"{key}: args definition moved to top.")
+
+
 def get_toml_element(  # noqa: C901, PLR0911
     key: str, json_object: dict[str, Any], *, inline: bool
 ) -> str | None:
@@ -133,6 +250,16 @@ def get_toml_element(  # noqa: C901, PLR0911
         if ignore in json_object:
             value = json_object.pop(ignore)
             warning(f"{key}: Ignoring key: {ignore}, value: {value}")
+
+    handle_setuptools_readme(key, json_object)
+    handle_pyproject_project_one_of(key, json_object)
+    handle_pyproject_project_author(key, json_object)
+    handle_hatch_root_one_of(key, json_object)
+    handle_hatch_build_any_of(key, json_object)
+    handle_hatch_publish_index_repos(key, json_object)
+    handle_poe_cwd_min_len(key, json_object)
+    handle_poetry_git_dependency(key, json_object)
+    handle_pdm_env_file_override(key, json_object)
 
     if "enum" in json_object:
         if "type" in json_object:
@@ -200,7 +327,7 @@ def get_toml_type(key: str, json_object: dict[str, Any], *, inline: bool) -> str
     return get_toml_type_options(key, json_type, json_object)
 
 
-def get_toml_type_options(  # noqa: C901, PLR0912
+def get_toml_type_options(  # noqa: C901, PLR0912, PLR0915
     key: str, json_type: str, json_object: dict[str, Any]
 ) -> str | None:
     options = []
@@ -239,6 +366,10 @@ def get_toml_type_options(  # noqa: C901, PLR0912
             FORMAT[global_filename]["uri"] = f'''"pattern = {URI_PATTERN!r}"'''
             return '''"ref = 'format.uri'"'''
         # The format value is not part of the json schema specification.
+        if json_type == "string":
+            warning(f"{key}: Adding generic string format rule: {json_format}")
+            FORMAT[global_filename][json_format] = '''"pattern = '^.*$'"'''
+            return f'''"ref = 'format.{json_format}'"'''
         if json_format == "uint8":
             minimum = 0 if minimum is None else max(minimum, 0)
             maximum = 0xFF if maximum is None else min(maximum, 0xFF)
@@ -324,6 +455,8 @@ def get_toml_table(  # noqa: C901, PLR0912
             raise Exception("'definitions' and '$defs' both defined.")
         json_defs = json_table_object.pop("$defs")
 
+    handle_poe_args_defs(key, json_defs)
+
     if "anyOf" in json_table_object:
         any_of = json_table_object.pop("anyOf")
         warning(f"{key}: 'anyOf' in json object ignored: {any_of}")
@@ -359,6 +492,10 @@ def get_toml_table_from_properties(  # noqa: C901, PLR0912, PLR0913, PLR0915
     elif key != "":
         assert global_toml_file is not None
         global_toml_file.write(f"\n[{key}]\n")
+
+    if json_properties is not None:
+        handle_cibuildwheels_defs_description(key, json_properties)
+        handle_poetry_poetry_script_table(key, json_properties)
 
     def is_table(json_object: dict[str, Any]) -> bool:
         if "type" in json_object:
@@ -456,7 +593,6 @@ def get_toml_pattern(key: str, json_object: dict[str, Any]) -> str | None:
     if "type" in json_object:
         json_type = json_object.pop("type")
         assert json_type == "string"
-        handle_poe_min_len(key, json_object)
     if "\n" in pattern:
         warning(rf"{key}: Replaced '\n' with '\\n' in pattern.")
         pattern = pattern.replace("\n", "\\n")
@@ -520,7 +656,7 @@ def get_toml_union(  # noqa: C901, PLR0912, PLR0915
         warning(f"{key}: 'required' in union not supported: {required}")
     union_types = []
     for i, json_item in enumerate(union_list):
-        typ = get_toml_element(key, json_item, inline=True)
+        typ = get_toml_element(f"{key}[{i}]", json_item, inline=True)
         if typ != '"null"' and typ is not None:
             union_types.append(typ)
         if json_item != {}:
@@ -568,10 +704,6 @@ def convert(json_filename: str) -> pathlib.Path:
     debug(f"Generating file: {toml_filename}")
     global global_toml_file
     with pathlib.Path(toml_filename).open("w") as global_toml_file:
-        if "oneOf" in json_object and json_filename == "hatch.json":
-            one_of = json_object.pop("oneOf")
-            warning(f"Ignored 'oneOf': {one_of}")
-
         json_type = get_toml_element("", json_object, inline=False)
         if json_object != {}:
             raise Exception(f"Extra keys: {json_object}")

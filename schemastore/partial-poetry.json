@@ -140,14 +140,13 @@
       "additionalProperties": false,
       "properties": {
         "git": {
+          "type": "string",
           "description": "The url of the git repository.",
           "anyOf": [
             {
-              "type": "string",
               "format": "uri"
             },
             {
-              "type": "string",
               "pattern": "^([A-Za-z0-9\\-]+@|https://|http://)[A-Za-z][A-Za-z0-9+.-]*(:|/)[A-Za-z0-9\\-\\.]+(/[A-Za-z0-9\\-_\\.]+)+\\.git$"
             }
           ]
@@ -338,6 +337,7 @@
       }
     },
     "poetry-script-table": {
+      "type": "object",
       "oneOf": [
         {
           "$ref": "#/definitions/poetry-extra-script-legacy"
