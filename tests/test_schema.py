@@ -501,6 +501,37 @@ def test_arrays() -> None:
     """
     check(schema_str, toml_str)
 
+    # Test array options:
+    schema = toml_schema.loads("""numbers = [
+        "integer",
+        "min-items = 1",
+        "max-items = 3",
+        "unique-items = true",
+    ]""")
+    schema.validate({"numbers": [1]})
+    schema.validate({"numbers": [1, 2, 3]})
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"numbers": []})
+    assert str(exc_info.value) == "'numbers': Array has less than 1 items."
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"numbers": [1, 2, 3, 4]})
+    assert str(exc_info.value) == "'numbers': Array has more than 3 items."
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"numbers": [1, 2, 2]})
+    assert str(exc_info.value) == "'numbers': Array has duplicate values."
+
+    # Test some useless array options:
+    schema = toml_schema.loads("""numbers = [
+        "integer",
+        "min-items = 0",
+        "min-items = -1",
+        "unique-items = false",
+    ]""")
+    schema.validate({"numbers": [1, 2, 2]})
+
 
 def test_union() -> None:
     """Test schema unions."""

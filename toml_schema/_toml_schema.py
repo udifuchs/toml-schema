@@ -100,6 +100,14 @@ def _list_str_field_required() -> list[str]:
     raise ValueError("Required field missing.")  # pragma: no cover
 
 
+def _int_field_required() -> int:
+    raise ValueError("Required field missing.")  # pragma: no cover
+
+
+def _bool_field_required() -> bool:
+    raise ValueError("Required field missing.")  # pragma: no cover
+
+
 @dataclasses.dataclass(frozen=True)
 class SchemaKey(SchemaElement):
     """Schema for table keys."""
@@ -504,6 +512,30 @@ class File(SchemaElement):
         self._ref_schema.validate(value, context=context)
 
 
+@dataclasses.dataclass(frozen=True)
+class MinItems(SchemaElement):
+    """Schema for min-items option in arrays."""
+
+    min_items: int = dataclasses.field(default_factory=_int_field_required)
+    _array_option: bool = True
+
+
+@dataclasses.dataclass(frozen=True)
+class MaxItems(SchemaElement):
+    """Schema for max-items option in arrays."""
+
+    max_items: int = dataclasses.field(default_factory=_int_field_required)
+    _array_option: bool = True
+
+
+@dataclasses.dataclass(frozen=True)
+class UniqueItems(SchemaElement):
+    """Schema for unique-items option in arrays."""
+
+    unique_items: bool = dataclasses.field(default_factory=_bool_field_required)
+    _array_option: bool = True
+
+
 class Array(SchemaElement, list[SchemaElement]):
     """Array schema container."""
 
@@ -517,9 +549,10 @@ class Array(SchemaElement, list[SchemaElement]):
         SchemaElement.__init__(self, _address=_address)
         list.__init__(self, schema_list)
 
-        if len(self) == 0:
+        options_count = sum(1 for schema in self if hasattr(schema, "_array_option"))
+        if len(self) - options_count == 0:
             raise SchemaError("Empty array not allowed in schema.", _address)
-        if len(self) > 1:
+        if len(self) - options_count > 1:
             raise SchemaError(
                 "More than one element not allowed in array schema.", _address
             )
@@ -537,9 +570,26 @@ class Array(SchemaElement, list[SchemaElement]):
         """Validate array and its elements."""
         if type(value) is not list:
             raise SchemaError(f"Value {_format_attr(value)} is not: {self}", context)
-        schema = self[0]
-        for index, element in enumerate(value):
-            schema.validate(element, context=f"{context}[{index}]")
+        for schema in self:
+            if isinstance(schema, MinItems):
+                if len(value) < schema.min_items:
+                    raise SchemaError(
+                        f"Array has less than {schema.min_items} items.", context
+                    )
+            elif isinstance(schema, MaxItems):
+                if len(value) > schema.max_items:
+                    raise SchemaError(
+                        f"Array has more than {schema.max_items} items.", context
+                    )
+            elif isinstance(schema, UniqueItems):
+                if schema.unique_items and any(
+                    sum(1 for elem_2 in value if elem_1 == elem_2) > 1
+                    for elem_1 in value
+                ):
+                    raise SchemaError("Array has duplicate values.", context)
+            else:
+                for index, element in enumerate(value):
+                    schema.validate(element, context=f"{context}[{index}]")
 
 
 class Union(SchemaElement, list[SchemaElement]):
@@ -649,6 +699,12 @@ def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
                 return type_class(_address=_address)  # optionless types like "string".
         raise SchemaError(f"'{toml_type}' is not a valid keyword type.", _address)
 
+    return _create_schema_from_toml_string(toml_type, _address, TYPES_SCHEMA)
+
+
+def _create_schema_from_toml_string(
+    toml_type: str, _address: str, types_schema: Table
+) -> SchemaElement:
     try:
         toml_type_toml: dict[str, TOMLValue] = tomllib.loads(toml_type)
     except tomllib.TOMLDecodeError as ex:
@@ -657,7 +713,7 @@ def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
         ) from None
 
     try:
-        TYPES_SCHEMA.validate(toml_type_toml, context="")
+        types_schema.validate(toml_type_toml, context="")
     except SchemaError as ex:
         raise SchemaError(f"'{toml_type}' schema error: {ex}", _address) from None
 
@@ -675,12 +731,14 @@ def _create_schema_basic_type(toml_type: str, _address: str) -> SchemaElement:
             if isinstance(toml_type_toml[type_name], dict):
                 # Table option, for example: "integer = { min = 0, max = 255 }"
                 type_dict = cast(dict[str, TOMLValue], toml_type_toml[type_name])
-                type_params: dict[str, TOMLValue] = {
-                    key.replace("-", "_"): value for key, value in type_dict.items()
-                }
-                return type_class(_address=_address, **type_params)
-            # Key-value option, for example: "pattern = '^[a-z]*$'"
-            return type_class(_address=_address, **toml_type_toml)
+            else:
+                # Key-value option, for example: "pattern = '^[a-z]*$'"
+                type_dict = toml_type_toml
+
+            type_params: dict[str, TOMLValue] = {
+                key.replace("-", "_"): value for key, value in type_dict.items()
+            }
+            return type_class(_address=_address, **type_params)
 
     # The schema validation guarantees that this exception would never be reached:
     raise RuntimeError(
@@ -713,7 +771,7 @@ def _create_schema(toml_value: TOMLValue, _address: str) -> SchemaElement:
     if isinstance(toml_value, list):
         # Create schema array:
         schema_list = [
-            _create_schema(value, _address=f"{_address}[{index}]")
+            _create_schema_in_array(value, _address=f"{_address}[{index}]")
             for index, value in enumerate(toml_value)
         ]
         return Array(schema_list, _address=_address)
@@ -723,6 +781,18 @@ def _create_schema(toml_value: TOMLValue, _address: str) -> SchemaElement:
         return _create_schema_basic_type(toml_value, _address)
 
     raise SchemaError(f"Schema type '{toml_value}' not a string.", _address)
+
+
+def _create_schema_in_array(toml_value: TOMLValue, _address: str) -> SchemaElement:
+    if isinstance(toml_value, str) and "=" in toml_value:
+        # toml_value is assumed to be a TOML string.
+        try:
+            return _create_schema_from_toml_string(
+                toml_value, _address, ARRAY_TYPES_SCHEMA
+            )
+        except SchemaError:
+            pass
+    return _create_schema(toml_value, _address)
 
 
 def from_toml_table(
@@ -765,6 +835,14 @@ TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
 }
 
 TYPES_SCHEMA = from_toml_table(TYPES_SCHEMA_TABLE)
+
+ARRAY_TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
+    "min-items": "integer",
+    "max-items": "integer",
+    "unique-items": "boolean",
+}
+
+ARRAY_TYPES_SCHEMA = from_toml_table(ARRAY_TYPES_SCHEMA_TABLE)
 
 KEY_SCHEMA_TABLE: dict[str, TOMLValue] = {
     "pattern": "string",

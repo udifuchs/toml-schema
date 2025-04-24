@@ -1667,7 +1667,7 @@ function-names = [ "string" ]
 allow-multiline = "boolean"
 
 ["defs = { hidden = true }".Flake8ImportConventionsOptions]
-banned-from = [ "string" ]
+banned-from = [ "string", "unique-items = true" ]
 
 ["defs = { hidden = true }".Flake8ImportConventionsOptions.aliases]
 "*" = "ref = 'defs.Alias'"
@@ -1846,7 +1846,7 @@ allowed-unused-imports = [ "string" ]
 extend-generics = [ "string" ]
 
 ["defs = { hidden = true }".PylintOptions]
-allow-dunder-method-names = [ "string" ]
+allow-dunder-method-names = [ "string", "unique-items = true" ]
 allow-magic-value-types = [ "ref = 'defs.ConstantType'" ]
 max-args = "integer = { min = 0 }"
 max-bool-expr = "integer = { min = 0 }"

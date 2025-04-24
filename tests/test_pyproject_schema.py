@@ -35,10 +35,9 @@ def list_toml_files() -> Generator[tuple[toml_schema.Table, pathlib.Path]]:
             yield schema, path
 
     for path in pathlib.Path("examples/schemastore-negative-test").glob("**/*.toml"):
-        if str(path) in (
+        if not WRITE_ERROR_FILES and str(path) in (
             "examples/schemastore-negative-test/pyproject/cibuildwheel-bad-override.toml",
             "examples/schemastore-negative-test/pyproject/pep639-mismatch.toml",
-            "examples/schemastore-negative-test/pyproject/mypy-emptymodule.toml",
             "examples/schemastore-negative-test/pyproject/dynamic-version-specified.toml",
             "examples/schemastore-negative-test/pyproject/poetry-plugin-dotenv-example-1.toml",
             "examples/schemastore-negative-test/pyproject/version-unspecified.toml",
@@ -47,7 +46,7 @@ def list_toml_files() -> Generator[tuple[toml_schema.Table, pathlib.Path]]:
         yield schema, path
 
     for path in pathlib.Path("examples/validate-pyproject-invalid").glob("**/*.toml"):
-        if str(path) in (
+        if not WRITE_ERROR_FILES and str(path) in (
             "examples/validate-pyproject-invalid/pep735/not-pep508.toml",
             "examples/validate-pyproject-invalid/store/cibw-overrides-noaction.toml",
             "examples/validate-pyproject-invalid/localtool/fail2.toml",
@@ -77,10 +76,11 @@ def test_pyproject(schema: toml_schema.Table, filepath: pathlib.Path) -> None:
         toml_table: dict[str, toml_schema.TOMLValue] = tomllib.load(toml_file)
     err_filepath = filepath.with_suffix(".errors.txt")
     if WRITE_ERROR_FILES:  # pragma: no cover
-        with pytest.raises(toml_schema.SchemaError) as exc_info:
+        try:
             schema.validate(toml_table)
-        with err_filepath.open("w") as err_file:
-            err_file.write(f"{exc_info.value}\n")
+        except toml_schema.SchemaError as ex:
+            with err_filepath.open("w") as err_file:
+                err_file.write(f"{ex}\n")
     elif err_filepath.exists():
         with err_filepath.open() as err_file:
             err_text = err_file.read()[:-1]

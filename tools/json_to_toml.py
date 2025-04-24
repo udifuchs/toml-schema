@@ -56,9 +56,6 @@ JSON_TODO = (
     "dependencies",
     "minProperties",  # Shows up only in json object.
     "propertyNames",  # Shows up only in json object.
-    "minItems",  # For array
-    "uniqueItems",  # For array
-    "additionalItems",  # For array
 )
 
 # Regex patterns taken from:
@@ -97,6 +94,19 @@ def handle_setuptools_readme(key: str, json_object: dict[str, Any]) -> None:
         required = json_object.pop("required")
         json_object["anyOf"][1]["required"] = required
         warning(f"{key}: key 'required' moved to expected location.")
+
+
+def handle_setuptools_define_macros(key: str, json_object: dict[str, Any]) -> None:
+    if (
+        global_filename == "partial-setuptools.json"
+        and key == '"defs = { hidden = true }".ext-module.define-macros[0]'
+    ):
+        add_items = json_object.pop("additionalItems")
+        assert add_items is False
+        json_object["items"] = {"type": "string"}
+        json_object["minItems"] = 2
+        json_object["maxItems"] = 2
+        warning(f"{key}: Special handling for tuple validation.")
 
 
 def handle_cibuildwheels_defs_description(
@@ -252,6 +262,7 @@ def get_toml_element(  # noqa: C901, PLR0911
             warning(f"{key}: Ignoring key: {ignore}, value: {value}")
 
     handle_setuptools_readme(key, json_object)
+    handle_setuptools_define_macros(key, json_object)
     handle_pyproject_project_one_of(key, json_object)
     handle_pyproject_project_author(key, json_object)
     handle_hatch_root_one_of(key, json_object)
@@ -294,7 +305,7 @@ def get_toml_element(  # noqa: C901, PLR0911
     return handle_hatch_empty_override()
 
 
-def get_toml_type(key: str, json_object: dict[str, Any], *, inline: bool) -> str | None:  # noqa: C901
+def get_toml_type(key: str, json_object: dict[str, Any], *, inline: bool) -> str | None:
     json_type = json_object.pop("type")
     if "$ref" in json_object:
         ref = json_object.pop("$ref")
@@ -308,10 +319,6 @@ def get_toml_type(key: str, json_object: dict[str, Any], *, inline: bool) -> str
         if len(json_type) < 1:
             raise Exception(f"{key}: JSON type array is empty: {json_type}")
         json_type = json_type[0]
-
-    if "anyOf" in json_object:
-        any_of = json_object.pop("anyOf")
-        warning(f"{key}: 'anyOf' in json type ignored: {any_of}")
 
     if handle_poetry_source(key, json_object):
         return None
@@ -431,11 +438,8 @@ def get_toml_table(  # noqa: C901, PLR0912
     if "additionalProperties" in json_table_object:
         ap = json_table_object.pop("additionalProperties")
         if ap is not False:
-            if pattern_properties is not None:
-                raise Exception(
-                    f"{key}: Cannot mix additionalProperties with patternProperties"
-                )
-            pattern_properties = {}
+            if pattern_properties is None:
+                pattern_properties = {}
             if ap is True:
                 pattern_properties['"*"'] = {"type": "any-value"}
             else:
@@ -459,11 +463,11 @@ def get_toml_table(  # noqa: C901, PLR0912
 
     if "anyOf" in json_table_object:
         any_of = json_table_object.pop("anyOf")
-        warning(f"{key}: 'anyOf' in json object ignored: {any_of}")
+        raise Exception(f"{key}: 'anyOf' in json object ignored: {any_of}")
 
     if "oneOf" in json_table_object:
         one_of = json_table_object.pop("oneOf")
-        warning(f"{key}: 'oneOf' in json object ignored: {one_of}")
+        raise Exception(f"{key}: 'oneOf' in json object ignored: {one_of}")
 
     if json_table_object != {}:
         raise Exception(f"{key}: Extra values: {json_table_object}")
@@ -580,11 +584,29 @@ def get_toml_array(key: str, json_object: dict[str, Any]) -> str:
         warning(f"{key}: Array without items")
         json_items = {"type": "any-value"}
     if isinstance(json_items, list):
-        warning(rf"{key}: No support for 'items' list: {json_items}")
-        json_items = json_items[0]
-    toml_type = get_toml_element(key, json_items, inline=True)
+        raise Exception(  # noqa: TRY004
+            f"{key}: No support for 'items' list: {json_items}"
+        )
+    toml_type = get_toml_element(f"{key}[0]", json_items, inline=True)
+
+    options = []
+    if "minItems" in json_object:
+        min_items = json_object.pop("minItems")
+        options.append(f'"min-items = {min_items}"')
+    if "maxItems" in json_object:
+        max_items = json_object.pop("maxItems")
+        options.append(f'"max-items = {max_items}"')
+    if "uniqueItems" in json_object:
+        unique_items = json_object.pop("uniqueItems")
+        options.append(f'"unique-items = {str(unique_items).lower()}"')
+    if "additionalItems" in json_object:
+        add_items = json_object.pop("additionalItems")
+        if add_items is not False:
+            raise Exception(f"{key}: Unsupported additionalItems = {add_items}")
     if json_object != {}:
         raise Exception(f"Extra keys: {key}: {json_object}")
+    if len(options) > 0:
+        return f"[ {toml_type}, {', '.join(options)} ]"
     return f"[ {toml_type} ]"
 
 
@@ -602,7 +624,7 @@ def get_toml_pattern(key: str, json_object: dict[str, Any]) -> str | None:
     return f'"""\n    pattern = {pattern!r}\n"""'
 
 
-def get_toml_union(  # noqa: C901, PLR0912, PLR0915
+def get_toml_union(  # noqa: C901, PLR0912
     key: str, json_object: dict[str, Any]
 ) -> str | None:
     if "anyOf" in json_object:
@@ -643,7 +665,6 @@ def get_toml_union(  # noqa: C901, PLR0912, PLR0915
                 union_mode = "one"
     elif "allOf" in json_object:
         union_list = json_object.pop("allOf")
-        info(f"{key}: Check if allOf could be replaced with anyOf.")
         union_mode = "all"
     else:
         return None
@@ -653,7 +674,7 @@ def get_toml_union(  # noqa: C901, PLR0912, PLR0915
         warning(f"{key}: Redundant type in anyOf ignored: {json_type}")
     if "required" in json_object:
         required = json_object.pop("required")
-        warning(f"{key}: 'required' in union not supported: {required}")
+        raise Exception(f"{key}: 'required' in union not supported: {required}")
     union_types = []
     for i, json_item in enumerate(union_list):
         typ = get_toml_element(f"{key}[{i}]", json_item, inline=True)

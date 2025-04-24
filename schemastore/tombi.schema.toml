@@ -1,7 +1,7 @@
 format = "ref = 'defs.FormatOptions'"
 toml-version = "ref = 'defs.TomlVersion'"
-include = [ "string" ]
-exclude = [ "string" ]
+include = [ "string", "min-items = 1" ]
+exclude = [ "string", "min-items = 1" ]
 lint = "ref = 'defs.LintOptions'"
 server = "ref = 'defs.ServerOptions'"
 schema = "ref = 'defs.SchemaOptions'"
@@ -56,9 +56,9 @@ path = "ref = 'defs.OneOrMany_for_SchemaCatalogPath'"
 ["defs = { hidden = true }".RootSchema]
 toml-version = "ref = 'defs.TomlVersion'"
 "path = { required = true }" = "string"
-"include = { required = true }" = [ "string" ]
+"include = { required = true }" = [ "string", "min-items = 1" ]
 
 ["defs = { hidden = true }".SubSchema]
 "path = { required = true }" = "string"
-"include = { required = true }" = [ "string" ]
+"include = { required = true }" = [ "string", "min-items = 1" ]
 root-keys = "string = { min-len = 1 }"

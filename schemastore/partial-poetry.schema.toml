@@ -130,7 +130,7 @@ poetry-multiple-constraints-dependency = [ { "union = 'one'" = [
     "ref = 'defs.poetry-file-dependency'",
     "ref = 'defs.poetry-path-dependency'",
     "ref = 'defs.poetry-url-dependency'",
-] } ]
+] }, "min-items = 1" ]
 poetry-script-table = { "union = 'one'" = [
     "ref = 'defs.poetry-extra-script-legacy'",
     "ref = 'defs.poetry-extra-scripts'",

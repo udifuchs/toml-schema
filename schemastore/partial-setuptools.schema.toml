@@ -59,7 +59,7 @@ file-directive-for-dependencies = "ref = 'defs.file-directive'"
 "name = { required = true }" = "ref = 'format.python-module-name-relaxed'"
 "sources = { required = true }" = [ "string" ]
 include-dirs = [ "string" ]
-define-macros = [ [ "string" ] ]
+define-macros = [ [ "string", "min-items = 2", "max-items = 2" ] ]
 undef-macros = [ "string" ]
 library-dirs = [ "string" ]
 libraries = [ "string" ]
