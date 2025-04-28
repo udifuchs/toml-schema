@@ -39,7 +39,6 @@ def list_toml_files() -> Generator[tuple[toml_schema.Table, pathlib.Path]]:
             "examples/schemastore-negative-test/pyproject/cibuildwheel-bad-override.toml",
             "examples/schemastore-negative-test/pyproject/pep639-mismatch.toml",
             "examples/schemastore-negative-test/pyproject/dynamic-version-specified.toml",
-            "examples/schemastore-negative-test/pyproject/poetry-plugin-dotenv-example-1.toml",
             "examples/schemastore-negative-test/pyproject/version-unspecified.toml",
         ):
             continue

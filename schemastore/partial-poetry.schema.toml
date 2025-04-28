@@ -13,56 +13,36 @@ readme = { union = [
     "string",
     [ "string" ],
 ] }
-classifiers = [ "any-value" ]
+classifiers = [ "string" ]
 packages = [ { "include = { required = true }" = "ref = 'defs.poetry-include-path'", from = "string", format = "ref = 'defs.poetry-package-formats'", to = "string" } ]
 include = [ { union = [
     "ref = 'defs.poetry-include-path'",
     { "path = { required = true }" = "ref = 'defs.poetry-include-path'", format = "ref = 'defs.poetry-package-formats'" },
 ] } ]
-exclude = [ "any-value" ]
+exclude = [ "string" ]
 build = "ref = 'defs.poetry-build-section'"
-
-source = [
-    { union = [
-        { "name = { required = true }" = "enum = [ 'pypi' ]", priority = """enum = [
-            "default",
-            "primary",
-            "secondary",
-            "supplemental",
-            "explicit",
-        ]""" },
-
-        { "name = { required = true }" = { "union = 'all'" = [
-            "string",
-            { "union = 'none'" = [
-                "enum = [ 'pypi' ]",
-            ] },
-        ] }, "url = { required = true }" = "ref = 'format.uri'", priority = """enum = [
-            "default",
-            "primary",
-            "secondary",
-            "supplemental",
-            "explicit",
-        ]""" },
-    ] }
-]
-
+source = [ { union = [
+    { "name = { required = true }" = "enum = [ 'pypi' ]", priority = "ref = 'defs.poetry-priority'" },
+    { "name = { required = true }" = { "union = 'all'" = [
+    "string",
+    { "union = 'none'" = [
+    "enum = [ 'pypi' ]",
+] },
+] }, "url = { required = true }" = "ref = 'format.uri'", priority = "ref = 'defs.poetry-priority'" },
+] } ]
 "*" = "any-value"
 
 [dependencies]
-python = "string"
+python = "ref = 'defs.poetry-dependency'"
 "*" = "ref = 'defs.poetry-dependency-any'"
 
 [dev-dependencies]
 "pattern = '^[a-zA-Z-_.0-9]+$'" = "ref = 'defs.poetry-dependency-any'"
-"*" = "any-value"
 
 [extras]
 "pattern = '^[a-zA-Z-_.0-9]+$'" = [ "string" ]
-"*" = "any-value"
 
 [group]
-"*" = "any-value"
 
 [group."pattern = '^[a-zA-Z-_.0-9]+$'"]
 optional = "boolean"
@@ -71,14 +51,12 @@ optional = "boolean"
 "pattern = '^[a-zA-Z-_.0-9]+$'" = "ref = 'defs.poetry-dependency-any'"
 
 [scripts]
-"pattern = '^[a-zA-Z-_.0-9]+$'" = { "union = 'one'" = [
+"pattern = '^[a-zA-Z-_.0-9]+$'" = { union = [
     "ref = 'defs.poetry-script-legacy'",
     "ref = 'defs.poetry-script-table'",
 ] }
-"*" = "any-value"
 
 [plugins]
-"*" = "any-value"
 
 [plugins."pattern = '^dotenv$'"]
 ignore = "string"
@@ -86,11 +64,9 @@ location = "string"
 
 [plugins."pattern = '^[a-zA-Z-_.0-9]+$'"]
 "pattern = '^[a-zA-Z-_.0-9]+$'" = "string"
-"*" = "any-value"
 
 [urls]
 "pattern = '^.+$'" = "string"
-"*" = "any-value"
 
 ["defs = { hidden = true }"]
 poetry-name = "string"
@@ -108,11 +84,11 @@ poetry-package-format = """enum = [
     "sdist",
     "wheel",
 ]"""
-poetry-package-formats = { "union = 'one'" = [
+poetry-package-formats = { union = [
     "ref = 'defs.poetry-package-format'",
     [ "ref = 'defs.poetry-package-format'" ],
 ] }
-poetry-dependency-any = { "union = 'one'" = [
+poetry-dependency-any = { union = [
     "ref = 'defs.poetry-dependency'",
     "ref = 'defs.poetry-long-dependency'",
     "ref = 'defs.poetry-git-dependency'",
@@ -123,7 +99,7 @@ poetry-dependency-any = { "union = 'one'" = [
 ] }
 poetry-pep440-version = "string"
 poetry-dependency = "ref = 'defs.poetry-pep440-version'"
-poetry-multiple-constraints-dependency = [ { "union = 'one'" = [
+poetry-multiple-constraints-dependency = [ { union = [
     "ref = 'defs.poetry-dependency'",
     "ref = 'defs.poetry-long-dependency'",
     "ref = 'defs.poetry-git-dependency'",
@@ -131,16 +107,23 @@ poetry-multiple-constraints-dependency = [ { "union = 'one'" = [
     "ref = 'defs.poetry-path-dependency'",
     "ref = 'defs.poetry-url-dependency'",
 ] }, "min-items = 1" ]
-poetry-script-table = { "union = 'one'" = [
+poetry-script-table = { union = [
     "ref = 'defs.poetry-extra-script-legacy'",
     "ref = 'defs.poetry-extra-scripts'",
 ] }
 poetry-script-legacy = "string"
 poetry-build-script = "string"
-poetry-build-section = { "union = 'one'" = [
+poetry-build-section = { union = [
     "ref = 'defs.poetry-build-script'",
     "ref = 'defs.poetry-build-config'",
 ] }
+poetry-priority = """enum = [
+    "default",
+    "primary",
+    "secondary",
+    "supplemental",
+    "explicit",
+]"""
 
 ["defs = { hidden = true }".poetry-long-dependency]
 "version = { required = true }" = "ref = 'defs.poetry-pep440-version'"

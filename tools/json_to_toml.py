@@ -171,65 +171,6 @@ def handle_pdm_env_file_override(key: str, json_object: dict[str, Any]) -> None:
         warning(f"{key}.env-file: bad location for additionalProperties = {add_prop}")
 
 
-def handle_poetry_git_dependency(key: str, json_object: dict[str, Any]) -> None:
-    if (
-        global_filename == "partial-poetry.json"
-        and key == '"defs = { hidden = true }".poetry-git-dependency'
-    ):
-        json_object = json_object["properties"]["git"]
-        json_type = json_object.pop("type")
-        json_object["anyOf"][0]["type"] = json_type
-        json_object["anyOf"][1]["type"] = json_type
-        warning(f"{key}: ignoring item: type = {json_type}")
-
-
-def handle_poetry_poetry_script_table(key: str, json_object: dict[str, Any]) -> None:
-    if (
-        global_filename == "partial-poetry.json"  # fmt: skip
-        and key == '"defs = { hidden = true }"'
-    ):
-        json_object = json_object["poetry-script-table"]
-        json_type = json_object.pop("type")
-        warning(f"{key}: ignoring redundant: type = {json_type}")
-
-
-def handle_poetry_source(key: str, json_object: dict[str, Any]) -> bool:
-    if global_filename != "partial-poetry.json" or key != "source":
-        return False
-
-    warning(f"{key}: Manual handling of poetry key.")
-    json_object.pop("items")
-    assert global_toml_file is not None
-    global_toml_file.write('''
-source = [
-    { union = [
-        { "name = { required = true }" = "enum = [ 'pypi' ]", priority = """enum = [
-            "default",
-            "primary",
-            "secondary",
-            "supplemental",
-            "explicit",
-        ]""" },
-
-        { "name = { required = true }" = { "union = 'all'" = [
-            "string",
-            { "union = 'none'" = [
-                "enum = [ 'pypi' ]",
-            ] },
-        ] }, "url = { required = true }" = "ref = 'format.uri'", priority = """enum = [
-            "default",
-            "primary",
-            "secondary",
-            "supplemental",
-            "explicit",
-        ]""" },
-    ] }
-]
-
-''')
-    return True
-
-
 def handle_poe_args_defs(key: str, json_defs: dict[str, Any] | None) -> None:
     if (
         global_filename == "partial-poe.json"  # fmt: skip
@@ -269,7 +210,6 @@ def get_toml_element(  # noqa: C901, PLR0911
     handle_hatch_build_any_of(key, json_object)
     handle_hatch_publish_index_repos(key, json_object)
     handle_poe_cwd_min_len(key, json_object)
-    handle_poetry_git_dependency(key, json_object)
     handle_pdm_env_file_override(key, json_object)
 
     if "enum" in json_object:
@@ -289,7 +229,7 @@ def get_toml_element(  # noqa: C901, PLR0911
         return f'''"enum = [ '{const}' ]"'''
 
     if "pattern" in json_object:
-        return get_toml_pattern(key, json_object)
+        return get_toml_pattern(json_object)
 
     toml_union = get_toml_union(key, json_object)
     if toml_union is not None:
@@ -319,9 +259,6 @@ def get_toml_type(key: str, json_object: dict[str, Any], *, inline: bool) -> str
         if len(json_type) < 1:
             raise Exception(f"{key}: JSON type array is empty: {json_type}")
         json_type = json_type[0]
-
-    if handle_poetry_source(key, json_object):
-        return None
 
     if json_type == "object":
         return get_toml_table(key, json_object, inline=inline)
@@ -499,7 +436,6 @@ def get_toml_table_from_properties(  # noqa: C901, PLR0912, PLR0913, PLR0915
 
     if json_properties is not None:
         handle_cibuildwheels_defs_description(key, json_properties)
-        handle_poetry_poetry_script_table(key, json_properties)
 
     def is_table(json_object: dict[str, Any]) -> bool:
         if "type" in json_object:
@@ -610,13 +546,12 @@ def get_toml_array(key: str, json_object: dict[str, Any]) -> str:
     return f"[ {toml_type} ]"
 
 
-def get_toml_pattern(key: str, json_object: dict[str, Any]) -> str | None:
+def get_toml_pattern(json_object: dict[str, Any]) -> str | None:
     pattern = json_object.pop("pattern")
     if "type" in json_object:
         json_type = json_object.pop("type")
         assert json_type == "string"
     if "\n" in pattern:
-        warning(rf"{key}: Replaced '\n' with '\\n' in pattern.")
         pattern = pattern.replace("\n", "\\n")
     if "'" in pattern:
         pattern = repr(pattern).replace(r"\'", "'")
@@ -624,7 +559,7 @@ def get_toml_pattern(key: str, json_object: dict[str, Any]) -> str | None:
     return f'"""\n    pattern = {pattern!r}\n"""'
 
 
-def get_toml_union(  # noqa: C901, PLR0912
+def get_toml_union(  # noqa: C901, PLR0912, PLR0915
     key: str, json_object: dict[str, Any]
 ) -> str | None:
     if "anyOf" in json_object:
@@ -666,6 +601,9 @@ def get_toml_union(  # noqa: C901, PLR0912
     elif "allOf" in json_object:
         union_list = json_object.pop("allOf")
         union_mode = "all"
+    elif "not" in json_object:
+        union_list = json_object.pop("not")
+        union_mode = "none"
     else:
         return None
 
@@ -676,16 +614,20 @@ def get_toml_union(  # noqa: C901, PLR0912
         required = json_object.pop("required")
         raise Exception(f"{key}: 'required' in union not supported: {required}")
     union_types = []
-    for i, json_item in enumerate(union_list):
-        typ = get_toml_element(f"{key}[{i}]", json_item, inline=True)
-        if typ != '"null"' and typ is not None:
-            union_types.append(typ)
-        if json_item != {}:
-            raise Exception(f"Extra keys: {key}[{i}]: {json_item}")
-    if len(union_types) == 1:
-        info(f"{key}: Union with length 1: {union_types}")
-        assert isinstance(union_types[0], str)
-        return union_types[0]
+    if union_mode == "none":
+        typ = get_toml_element(key, union_list, inline=True)
+        union_types.append(typ)
+    else:
+        for i, json_item in enumerate(union_list):
+            typ = get_toml_element(f"{key}[{i}]", json_item, inline=True)
+            if typ != '"null"' and typ is not None:
+                union_types.append(typ)
+            if json_item != {}:
+                raise Exception(f"Extra keys: {key}[{i}]: {json_item}")
+        if len(union_types) == 1:
+            info(f"{key}: Union with length 1: {union_types}")
+            assert isinstance(union_types[0], str)
+            return union_types[0]
     union_str = ",\n    ".join(union_types)
     if union_mode == "any":
         return f"{{ union = [\n    {union_str},\n] }}"
