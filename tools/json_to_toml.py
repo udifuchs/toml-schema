@@ -13,24 +13,38 @@ import toml_schema
 
 WGET = False
 VERBOSE_LEVEL = 1
-# 1 - Warning that should be treated.
-# 2 - Information that is safe to ignore.
-# 3 - Debug.
+# 1 - To Do
+# 2 - Warning
+# 3 - Information
+# 4 - Debug
+
+ISSUES = {"info": 0, "warning": 0, "todo": 0}
 
 
 def debug(text: str) -> None:
-    if VERBOSE_LEVEL >= 3:
+    if VERBOSE_LEVEL >= 4:
         print(f"DEBUG: {global_filename}: {text}")
 
 
 def info(text: str) -> None:
-    if VERBOSE_LEVEL >= 2:
+    """Issues in the JSON schema that are safe to ignore."""
+    ISSUES["info"] += 1
+    if VERBOSE_LEVEL >= 3:
         print(f"INFO: {global_filename}: {text}")
 
 
 def warning(text: str) -> None:
-    if VERBOSE_LEVEL >= 1:
+    """Issues in the JSON schema that might make it behave differently than intended."""
+    ISSUES["warning"] += 1
+    if VERBOSE_LEVEL >= 2:
         print(f"WARNING: {global_filename}: {text}")
+
+
+def todo(text: str) -> None:
+    """JSON schema rules that are suspisious or not handled in the TOML schema."""
+    ISSUES["todo"] += 1
+    if VERBOSE_LEVEL >= 1:
+        print(f"TODO: {global_filename}: {text}")
 
 
 JSON_IGNORE = (
@@ -71,7 +85,7 @@ FORMAT: dict[str, dict[str, str]] = {}
 def handle_pyproject_project_one_of(key: str, json_object: dict[str, Any]) -> None:
     if global_filename == "pyproject.json" and key == "project":
         one_of = json_object.pop("oneOf")
-        warning(f"{key}: ignoring item: oneOf = {one_of}")
+        todo(f"{key}: ignoring item: oneOf = {one_of}")
 
 
 def handle_pyproject_project_author(key: str, json_object: dict[str, Any]) -> None:
@@ -80,7 +94,7 @@ def handle_pyproject_project_author(key: str, json_object: dict[str, Any]) -> No
         and key == '"defs = { hidden = true }".projectAuthor'
     ):
         any_of = json_object.pop("anyOf")
-        warning(f"{key}: ignoring item: anyOf = {any_of}")
+        todo(f"{key}: ignoring item: anyOf = {any_of}")
 
 
 def handle_setuptools_readme(key: str, json_object: dict[str, Any]) -> None:
@@ -106,7 +120,7 @@ def handle_setuptools_define_macros(key: str, json_object: dict[str, Any]) -> No
         json_object["items"] = {"type": "string"}
         json_object["minItems"] = 2
         json_object["maxItems"] = 2
-        warning(f"{key}: Special handling for tuple validation.")
+        todo(f"{key}: Special handling for tuple validation.")
 
 
 def handle_cibuildwheels_defs_description(
@@ -129,8 +143,9 @@ def handle_poe_cwd_min_len(key: str, json_object: dict[str, Any]) -> None:
         warning(f"{key}: Redundant minLength in pattern")
 
 
-def handle_hatch_empty_override() -> str | None:
+def handle_hatch_empty_override(key: str) -> str | None:
     if global_filename == "hatch.json":
+        info(f"{key}: empty property")
         return '"any-value"'
     return None
 
@@ -138,7 +153,7 @@ def handle_hatch_empty_override() -> str | None:
 def handle_hatch_root_one_of(key: str, json_object: dict[str, Any]) -> None:
     if global_filename == "hatch.json" and key == "":
         one_of = json_object.pop("oneOf")
-        warning(f"{key}: Ignored 'oneOf': {one_of}")
+        todo(f"{key}: Ignored 'oneOf': {one_of}")
 
 
 def handle_hatch_build_any_of(key: str, json_object: dict[str, Any]) -> None:
@@ -147,7 +162,7 @@ def handle_hatch_build_any_of(key: str, json_object: dict[str, Any]) -> None:
         and key == '"defs = { hidden = true }".Build'
     ):
         any_of = json_object.pop("anyOf")
-        warning(f"{key}: ignoring item: anyOf = {any_of}")
+        todo(f"{key}: ignoring item: anyOf = {any_of}")
 
 
 def handle_hatch_publish_index_repos(key: str, json_object: dict[str, Any]) -> None:
@@ -157,7 +172,7 @@ def handle_hatch_publish_index_repos(key: str, json_object: dict[str, Any]) -> N
     ):
         json_object = json_object["properties"]["repos"]
         properties = json_object.pop("properties")
-        warning(f"{key}.repos: ignoring item: properties = {properties}")
+        todo(f"{key}.repos: ignoring item: properties = {properties}")
 
 
 def handle_pdm_env_file_override(key: str, json_object: dict[str, Any]) -> None:
@@ -200,7 +215,7 @@ def get_toml_element(  # noqa: C901, PLR0911
     for ignore in JSON_TODO:
         if ignore in json_object:
             value = json_object.pop(ignore)
-            warning(f"{key}: Ignoring key: {ignore}, value: {value}")
+            todo(f"{key}: Ignoring key: {ignore}, value: {value}")
 
     handle_setuptools_readme(key, json_object)
     handle_setuptools_define_macros(key, json_object)
@@ -241,15 +256,15 @@ def get_toml_element(  # noqa: C901, PLR0911
     if "$ref" in json_object:
         return get_toml_ref(key, json_object)
 
-    warning(f"{key}: Missing type in: {json_object}")
-    return handle_hatch_empty_override()
+    todo(f"{key}: Missing type in: {json_object}")
+    return handle_hatch_empty_override(key)
 
 
 def get_toml_type(key: str, json_object: dict[str, Any], *, inline: bool) -> str | None:
     json_type = json_object.pop("type")
     if "$ref" in json_object:
         ref = json_object.pop("$ref")
-        warning(f"{key}: Redundant $ref ignored: {ref}")
+        todo(f"{key}: Redundant $ref ignored: {ref}")
     if isinstance(json_type, list):
         if "null" in json_type:
             del json_type[json_type.index("null")]
@@ -311,7 +326,7 @@ def get_toml_type_options(  # noqa: C901, PLR0912, PLR0915
             return '''"ref = 'format.uri'"'''
         # The format value is not part of the json schema specification.
         if json_type == "string":
-            warning(f"{key}: Adding generic string format rule: {json_format}")
+            todo(f"{key}: Adding generic string format rule: {json_format}")
             FORMAT[global_filename][json_format] = '''"pattern = '^.*$'"'''
             return f'''"ref = 'format.{json_format}'"'''
         if json_format == "uint8":
@@ -323,7 +338,7 @@ def get_toml_type_options(  # noqa: C901, PLR0912, PLR0915
         elif json_format == "uint":
             minimum = 0 if minimum is None else max(minimum, 0)
         else:
-            warning(f"{key}: Ignoring format: {json_format}")
+            todo(f"{key}: Ignoring format: {json_format}")
 
     if minimum is not None:
         options.append(f"min = {minimum}")
@@ -357,8 +372,7 @@ def get_toml_ref(key: str, json_object: dict[str, Any]) -> str | None:
             )
         toml_ref = pathlib.Path(json_ref).with_suffix(".schema.toml")
         return f'''"file = '{toml_ref}'"'''
-    warning(f"{key}: Unsupported reference: {ref}")
-    return '"any-value"'
+    raise Exception(f"{key}: Unsupported reference: {ref}")
 
 
 def get_toml_table(  # noqa: C901, PLR0912
@@ -464,7 +478,7 @@ def get_toml_table_from_properties(  # noqa: C901, PLR0912, PLR0913, PLR0915
             raise Exception(f"Extra keys: {key}.{sub_key}: {json_object}")
 
     if json_properties is None and json_pattern_properties is None:
-        warning(f"{key}: Empty table.")
+        todo(f"{key}: Empty table.")
         return None
 
     if json_properties is not None:
@@ -587,7 +601,7 @@ def get_toml_union(  # noqa: C901, PLR0912, PLR0915
                     ]
                     if len(union_enums) == len(set(union_enums)):
                         # All types are enum strings with different values:
-                        info(f"{key}: oneOf is treated as anyOf: {union_enums}")
+                        debug(f"{key}: oneOf is treated as anyOf: {union_enums}")
                         union_mode = "any"
                     else:
                         info(f"{key}: Check if oneOf could be replaced with anyOf.")
@@ -618,14 +632,22 @@ def get_toml_union(  # noqa: C901, PLR0912, PLR0915
         typ = get_toml_element(key, union_list, inline=True)
         union_types.append(typ)
     else:
+        has_null = False
         for i, json_item in enumerate(union_list):
             typ = get_toml_element(f"{key}[{i}]", json_item, inline=True)
-            if typ != '"null"' and typ is not None:
+            if typ == '"null"' or typ is None:
+                has_null = True
+            else:
                 union_types.append(typ)
             if json_item != {}:
                 raise Exception(f"Extra keys: {key}[{i}]: {json_item}")
         if len(union_types) == 1:
-            info(f"{key}: Union with length 1: {union_types}")
+            # Do not show info message if has_null as these are by products of:
+            # https://github.com/GREsau/schemars/issues/344
+            if has_null:
+                debug(f"{key}: Union with length 1: {union_types}")
+            else:
+                info(f"{key}: Union with length 1: {union_types}")
             assert isinstance(union_types[0], str)
             return union_types[0]
     union_str = ",\n    ".join(union_types)
@@ -683,11 +705,14 @@ def convert(json_filename: str) -> pathlib.Path:
 def main() -> None:
     os.chdir("schemastore")
 
+    global VERBOSE_LEVEL, WGET  # noqa: PLW0603
+
     parser = argparse.ArgumentParser()
+    parser.add_argument("--verbose", type=int, default=VERBOSE_LEVEL)
     parser.add_argument("--wget", action="store_true")
     args = parser.parse_args()
 
-    global WGET  # noqa: PLW0603
+    VERBOSE_LEVEL = args.verbose
     WGET = args.wget
 
     json_id = "https://json.schemastore.org/pyproject.json"
@@ -707,6 +732,8 @@ def main() -> None:
         convert(json_file)
 
     toml_schema.from_file(str(toml_filename))
+
+    print(ISSUES)
 
 
 if __name__ == "__main__":
