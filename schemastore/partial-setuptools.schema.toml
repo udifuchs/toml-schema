@@ -15,13 +15,25 @@ ext-modules = [ "ref = 'defs.ext-module'" ]
 license-files = [ "string" ]
 
 [package-dir]
-"pattern = '^.*$'" = "string"
+"key-def = { hidden = true }" = { union = [
+    "enum = [ '' ]",
+    "ref = 'defs.package-name'",
+] }
+"ref = 'package-dir.key-def'" = "string"
 
 [package-data]
-"pattern = '^.*$'" = [ "string" ]
+"key-def = { hidden = true }" = { union = [
+    "ref = 'format.python-module-name'",
+    "enum = [ '*' ]",
+] }
+"ref = 'package-data.key-def'" = [ "string" ]
 
 [exclude-package-data]
-"pattern = '^.*$'" = [ "string" ]
+"key-def = { hidden = true }" = { union = [
+    "ref = 'format.python-module-name'",
+    "enum = [ '*' ]",
+] }
+"ref = 'exclude-package-data.key-def'" = [ "string" ]
 
 [data-files]
 "pattern = '^.*$'" = [ "string" ]
@@ -46,7 +58,7 @@ readme = { union = [
 ] }
 
 [dynamic.optional-dependencies]
-"pattern = '.+'" = "ref = 'defs.file-directive-for-dependencies'"
+"ref = 'format.pep508-identifier'" = "ref = 'defs.file-directive-for-dependencies'"
 
 ["defs = { hidden = true }"]
 package-name = { union = [
@@ -96,6 +108,8 @@ namespaces = "boolean"
 pep508-identifier = "pattern = '^.*$'"
 
 python-module-name-relaxed = "pattern = '^.*$'"
+
+python-module-name = "pattern = '^.*$'"
 
 python-qualified-identifier = "pattern = '^.*$'"
 

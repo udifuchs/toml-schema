@@ -55,8 +55,19 @@ dynamic = [ """enum = [
 "*" = "string"
 
 [project.entry-points]
+"key-def = { hidden = true }" = { "union = 'all'" = [
+    """
+    pattern = '^\\w+(\\.\\w+)*$'
+""",
+    { "union = 'none'" = [
+    { union = [
+    "enum = [ 'console_scripts' ]",
+    "enum = [ 'gui_scripts' ]",
+] },
+] },
+] }
 
-[project.entry-points."pattern = '^\\w+(\\.\\w+)*$'"]
+[project.entry-points."ref = 'project.entry-points.key-def'"]
 "*" = "string"
 
 [project.optional-dependencies]

@@ -26,7 +26,7 @@ allow-ambiguous-features = "boolean"
 "*" = "any-value"
 
 ["defs = { hidden = true }".Overrides.platform]
-"*" = "ref = 'defs.Override'"
+"ref = 'defs.Platform'" = "ref = 'defs.Override'"
 
 ["defs = { hidden = true }".Overrides."pattern = 'env|matrix|name'"]
 "*" = "ref = 'defs.Override'"

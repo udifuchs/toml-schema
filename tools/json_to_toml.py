@@ -69,7 +69,6 @@ JSON_IGNORE = (
 JSON_TODO = (
     "dependencies",
     "minProperties",  # Shows up only in json object.
-    "propertyNames",  # Shows up only in json object.
 )
 
 # Regex patterns taken from:
@@ -352,6 +351,9 @@ def get_toml_type_options(  # noqa: C901, PLR0912, PLR0915
 
 def get_toml_ref(key: str, json_object: dict[str, Any]) -> str | None:
     ref = json_object.pop("$ref")
+    if isinstance(ref, list):  # Special case for converted injected ref.
+        assert isinstance(ref[0], str)
+        return ref[0]
     if ref.startswith("#/"):
         keys = ref.split("/")[1:]
         if keys[0] in ("definitions", "$defs"):
@@ -375,7 +377,7 @@ def get_toml_ref(key: str, json_object: dict[str, Any]) -> str | None:
     raise Exception(f"{key}: Unsupported reference: {ref}")
 
 
-def get_toml_table(  # noqa: C901, PLR0912
+def get_toml_table(  # noqa: C901, PLR0912, PLR0915
     key: str, json_table_object: dict[str, Any], *, inline: bool
 ) -> str | None:
     required_list = json_table_object.pop("required", [])
@@ -401,6 +403,43 @@ def get_toml_table(  # noqa: C901, PLR0912
         warning(f"{key}: No additionalProperties. Defaults to true.")
         assert '"*"' not in pattern_properties
         pattern_properties['"*"'] = {"type": "any-value"}
+
+    if "propertyNames" in json_table_object:
+        prop_names = json_table_object.pop("propertyNames")
+        assert properties is None
+        assert pattern_properties is not None
+        assert len(pattern_properties) == 1
+        old_key = next(iter(pattern_properties))
+        json_value = pattern_properties[old_key]
+        if old_key not in ('"*"', ".+", "^.*$"):
+            prop_names = {
+                "allOf": [
+                    {"pattern": old_key},
+                    prop_names,
+                ]
+            }
+        if "$ref" in prop_names or "format" in prop_names:
+            # "$ref" can be used directly:
+            toml_key = get_toml_element(key, prop_names, inline=True)
+            pattern_properties = {toml_key: json_value}
+        else:
+            # Create a "defs.key-def" and reference it in the key:
+            if '"defs = { hidden = true }"' in key:
+                key_def = "key-def"
+                base_key = key.replace('"defs = { hidden = true }"', "defs")
+            else:
+                key_def = '"key-def = { hidden = true }"'
+                base_key = key
+            pattern_properties = {
+                key_def: prop_names,
+                # Mark injected TOML ref by using a list:
+                f'''"ref = '{base_key}.key-def'"''': json_value,
+            }
+    elif pattern_properties is not None:
+        pattern_properties = {
+            pat_key if pat_key == '"*"' else f'"pattern = {pat_key!r}"': value
+            for pat_key, value in pattern_properties.items()
+        }
 
     json_defs = None
     if "definitions" in json_table_object:
@@ -491,8 +530,7 @@ def get_toml_table_from_properties(  # noqa: C901, PLR0912, PLR0913, PLR0915
         for sub_key, json_object in json_pattern_properties.items():
             if is_table(json_object):
                 continue
-            sub_key_pat = sub_key if sub_key == '"*"' else f'"pattern = {sub_key!r}"'
-            process_sub_key(sub_key_pat, json_object)
+            process_sub_key(sub_key, json_object)
 
     if json_properties is not None:
         for sub_key, json_object in json_properties.items():
@@ -504,8 +542,7 @@ def get_toml_table_from_properties(  # noqa: C901, PLR0912, PLR0913, PLR0915
         for sub_key, json_object in json_pattern_properties.items():
             if not is_table(json_object):
                 continue
-            sub_key_pat = sub_key if sub_key == '"*"' else f'"pattern = {sub_key!r}"'
-            process_sub_key(sub_key_pat, json_object)
+            process_sub_key(sub_key, json_object)
 
     if json_defs is not None:
         get_toml_table_from_properties(

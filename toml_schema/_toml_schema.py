@@ -78,6 +78,29 @@ class SchemaElement:
         """Validate value for this type."""
         raise NotImplementedError
 
+    def register_root(self, root: "Table") -> None:
+        """Register the root table of this element."""
+        if not hasattr(self, "ref"):
+            return
+        self_ref: Optional[str] = self.ref
+        if self_ref is None:
+            return
+        schema: SchemaElement = root
+        base_key = ""
+        for key in self_ref.split("."):
+            base_key = key if base_key == "" else f"{base_key}.{key}"
+            if not isinstance(schema, Table):
+                raise SchemaError(
+                    f"Reference to non-existing sub-key: {base_key}", self._address
+                )
+            next_schema = schema.get_sub_schema(key, get_hidden=True)
+            if next_schema is None:
+                raise SchemaError(
+                    f"Reference to non-existing key: {base_key}", self._address
+                )
+            schema = next_schema
+        object.__setattr__(self, "_ref_schema", schema)
+
 
 # TOML bare key chars copied from: cpython/Lib/tomllib/_parser.py
 # fmt: off
@@ -116,8 +139,10 @@ class SchemaKey(SchemaElement):
     required: bool = False
     hidden: bool = False
     pattern: Optional[str] = None
+    ref: Optional[str] = None
     union: Optional[str] = None
     _regex: Optional[re.Pattern[str]] = dataclasses.field(init=False, default=None)
+    _ref_schema: Optional[SchemaElement] = dataclasses.field(init=False, default=None)
 
     def __post_init__(self) -> None:
         if self.name == "*":
@@ -127,9 +152,6 @@ class SchemaKey(SchemaElement):
                 raise SchemaError(
                     "Wildcard key '*' cannot be marked as required.", self._address
                 )
-
-        if self.name == "union" and self.union is None:
-            object.__setattr__(self, "union", "any")
 
         if self.pattern is not None:
             if self.name != "pattern":
@@ -153,14 +175,25 @@ class SchemaKey(SchemaElement):
             return f'"{key_str} = {{ hidden = {_format_attr(self.hidden)} }}"'
         if self.pattern is not None:
             return f'''"pattern = '{self.pattern}'"'''
+        if self.ref is not None:
+            return f'''"ref = '{self.ref}'"'''
         return self._toml_key_name()
 
-    def wildcard_match(self, value: str) -> bool:
-        """Check if value matches with wildcard key."""
-        if self._regex is None:
-            return False
-        result = self._regex.match(value)
-        return result is not None
+    def special_match(self, value: str) -> bool:
+        """Check if value matches with wildcard or reference key."""
+        if self._regex is not None:
+            result = self._regex.match(value)
+            return result is not None
+        if self._ref_schema is not None:
+            if not isinstance(value, str):
+                return False
+            try:
+                self._ref_schema.validate(value, context="N/A")
+            except SchemaError:
+                return False
+            else:
+                return True
+        return False
 
     def _toml_key_name(self) -> str:
         """Quote TOML key when needed."""
@@ -348,37 +381,14 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
         SchemaElement.__init__(self, _address=_address)
         dict.__init__(self, schema_table)
 
-        def set_root_in_element(schema_value: SchemaElement, root: Table) -> None:
-            if isinstance(schema_value, Ref):
-                schema_value.set_root(root)
-            if isinstance(schema_value, File):
-                schema_value.set_file(toml_filename)
-            if isinstance(schema_value, Table):
-                set_root_in_table(schema_value, root)
-            if isinstance(schema_value, Array):
-                set_root_in_array(schema_value, root)
-            if isinstance(schema_value, Union):
-                set_root_in_union(schema_value, root)
-
-        def set_root_in_table(table: Table, root: Table) -> None:
-            for schema_value in table.values():
-                set_root_in_element(schema_value, root)
-
-        def set_root_in_array(array: Array, root: Table) -> None:
-            for schema_value in array:
-                set_root_in_element(schema_value, root)
-
-        def set_root_in_union(union: Union, root: Table) -> None:
-            for schema_value in union:
-                set_root_in_element(schema_value, root)
-
+        self.toml_filename = toml_filename
         if is_root:
-            set_root_in_table(self, self)
+            self.register_root(self)
         elif toml_filename is not None:  # pragma: no cover
             raise RuntimeError("toml_filename should only be specified if is_root.")
 
         key_count = {
-            key_1: sum(
+            str(key_1): sum(
                 1
                 for key_2 in self
                 if key_1.name == key_2.name
@@ -393,6 +403,11 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
                 f"{[str(key) for key, count in key_count.items() if count > 1]}",
                 self._address,
             )
+
+    def register_root(self, root: "Table") -> None:
+        for schema_key, schema_value in self.items():
+            schema_key.register_root(root)
+            schema_value.register_root(root)
 
     def __str__(self) -> str:
         values = [f"{key} = {value}" for key, value in self.items()]
@@ -430,9 +445,9 @@ class Table(SchemaElement, dict[SchemaKey, SchemaElement]):
             # Check if key is in schema:
             schema = self.get_sub_schema(key)
             if schema is None:
-                # Check if key matches any wildcard schema key:
+                # Check if key matches any wildcard or reference schema key:
                 for schema_key, schema_value in self.items():
-                    if schema_key.wildcard_match(key):
+                    if schema_key.special_match(key):
                         schema = schema_value
                         break
                 else:
@@ -454,29 +469,12 @@ class Ref(SchemaElement):
     """Schema for referencing other schema keys."""
 
     ref: str = dataclasses.field(default_factory=_str_field_required)
-    _ref_schema: Optional[SchemaElement] = None  # dataclasses.field(init=False)
-
-    def set_root(self, root: Table) -> None:
-        schema: SchemaElement = root
-        base_key = ""
-        for key in self.ref.split("."):
-            base_key = key if base_key == "" else f"{base_key}.{key}"
-            if not isinstance(schema, Table):
-                raise SchemaError(
-                    f"Reference to non-existing sub-key: {base_key}", self._address
-                )
-            next_schema = schema.get_sub_schema(key, get_hidden=True)
-            if next_schema is None:
-                raise SchemaError(
-                    f"Reference to non-existing key: {base_key}", self._address
-                )
-            schema = next_schema
-        object.__setattr__(self, "_ref_schema", schema)
+    _ref_schema: Optional[SchemaElement] = dataclasses.field(init=False, default=None)
 
     def validate(self, value: TOMLValue, /, *, context: str) -> None:
         """Validate value with the reference type."""
         if self._ref_schema is None:  # pragma: no cover
-            # If this exception is reached there is a bug in Table's set_root:
+            # If this exception is reached there is a bug in Table's register_root:
             raise RuntimeError(f"'{self._address}': _ref_schema is None.")
         self._ref_schema.validate(value, context=context)
 
@@ -486,14 +484,14 @@ class File(SchemaElement):
     """Schema for referencing other schema files."""
 
     file: str = dataclasses.field(default_factory=_str_field_required)
-    _ref_schema: Optional[SchemaElement] = None  # dataclasses.field(init=False)
+    _ref_schema: Optional[SchemaElement] = dataclasses.field(init=False, default=None)
 
-    def set_file(self, toml_filename: Optional[str]) -> None:
-        if toml_filename is None:
+    def register_root(self, root: Table) -> None:
+        if root.toml_filename is None:
             raise SchemaError(
                 "Schema has file reference. Must specify TOML filename.", self._address
             )
-        toml_path = pathlib.Path(toml_filename).parent
+        toml_path = pathlib.Path(root.toml_filename).parent
         try:
             schema = from_file(str(toml_path / self.file))
         except (SchemaError, tomllib.TOMLDecodeError, OSError) as ex:
@@ -505,7 +503,7 @@ class File(SchemaElement):
     def validate(self, value: TOMLValue, /, *, context: str) -> None:
         """Validate value with the reference schema file."""
         if self._ref_schema is None:
-            # If this exception is reached there is a bug in Table's set_root:
+            # If this exception is reached there is a bug in Table's register_root:
             raise RuntimeError(
                 f"'{self._address}': _ref_schema is None."
             )  # pragma: no cover
@@ -557,6 +555,10 @@ class Array(SchemaElement, list[SchemaElement]):
                 "More than one element not allowed in array schema.", _address
             )
 
+    def register_root(self, root: Table) -> None:
+        for schema_value in self:
+            schema_value.register_root(root)
+
     def __str__(self) -> str:
         schemas = [str(schema) for schema in self]
         return f"[ {', '.join(schemas)} ]"
@@ -597,8 +599,8 @@ class Union(SchemaElement, list[SchemaElement]):
 
     def __init__(
         self,
-        schema_list: Sequence[SchemaElement],
         mode: str,
+        schema_list: Sequence[SchemaElement],
         /,
         *,
         _address: str = "",
@@ -613,6 +615,10 @@ class Union(SchemaElement, list[SchemaElement]):
             raise SchemaError("Union should contain at least 2 type options.", _address)
         if any(isinstance(value, AnyValue) for value in self):
             raise SchemaError("'any-value' cannot be part of a union schema.", _address)
+
+    def register_root(self, root: Table) -> None:
+        for schema_value in self:
+            schema_value.register_root(root)
 
     def __str__(self) -> str:
         schemas = [str(schema) for schema in self]
@@ -659,6 +665,8 @@ class Union(SchemaElement, list[SchemaElement]):
 
 def _create_key(key: str, _address: str) -> SchemaKey:
     if "=" not in key:  # Key is certainly not a TOML string.
+        if key == "union":
+            return SchemaKey(name=key, union="any", _address=_address)
         return SchemaKey(name=key, _address=_address)
 
     try:
@@ -681,7 +689,7 @@ def _create_key(key: str, _address: str) -> SchemaKey:
         _address=_address,
         **(
             key_toml  # For example: {"pattern": "^[a-z]*$"}
-            if key_name in ("pattern", "union")
+            if isinstance(key_toml[key_name], str)
             else key_toml[key_name]  # For example: {"name": {"required": True}}
         ),  # type: ignore[arg-type]
     )
@@ -763,7 +771,7 @@ def _create_schema(toml_value: TOMLValue, _address: str) -> SchemaElement:
                 for index, value in enumerate(toml_union)
             ]
             union_mode = cast(str, schema_keys[0].union)
-            return Union(schema_union, union_mode, _address=_address)
+            return Union(union_mode, schema_union, _address=_address)
 
         # Create schema table:
         return from_toml_table(toml_value, is_root=False, _address=_address)
@@ -845,8 +853,24 @@ ARRAY_TYPES_SCHEMA_TABLE: dict[str, TOMLValue] = {
 ARRAY_TYPES_SCHEMA = from_toml_table(ARRAY_TYPES_SCHEMA_TABLE)
 
 KEY_SCHEMA_TABLE: dict[str, TOMLValue] = {
-    "pattern": "string",
-    # "union": "enum = [ 'any', 'all', 'one', 'none' ]"
+    "pattern": {
+        "union": [
+            "string",
+            {"required": "boolean"},
+        ]
+    },
+    "ref": {
+        "union": [
+            "string",
+            {"required": "boolean"},
+        ]
+    },
+    # The "union" key requires a workaround:
+    # union = { "union" = [
+    #     "enum = [ 'any', 'all', 'one', 'none' ]",
+    #     {"required": "boolean"},
+    # ] }
+    # Any key can be marked as required or hidden:
     "*": {
         "union": [
             {"required": "boolean"},
@@ -857,9 +881,13 @@ KEY_SCHEMA_TABLE: dict[str, TOMLValue] = {
 
 KEY_SCHEMA = from_toml_table(KEY_SCHEMA_TABLE)
 # Work around the fact that "union" cannot be a schema key:
-_union_key = SchemaKey(name="union-key")
-object.__setattr__(_union_key, "name", "union")
-KEY_SCHEMA[_union_key] = Enum(enum=["any", "all", "one", "none"])
+KEY_SCHEMA[SchemaKey(name="union")] = Union(
+    "any",
+    [
+        Enum(enum=["any", "all", "one", "none"]),
+        Table({SchemaKey(name="required"): Boolean()}, is_root=False),
+    ],
+)
 
 
 def from_file(toml_filename: str) -> Table:

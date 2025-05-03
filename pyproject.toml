@@ -63,7 +63,7 @@ pydocstyle.convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "toml_schema/_toml_schema.py" = [
-    "C901",  # Table: `__init__` is too complex (14 > 10)
+    "ERA001",  # Found commented-out code
     "ISC001",  # Implicitly concatenated string literals on one line
 ]
 

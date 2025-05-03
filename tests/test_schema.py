@@ -1306,6 +1306,34 @@ def test_key_pattern() -> None:
     )
 
 
+@pytest.mark.parametrize("key", ["pattern", "ref", "union"])
+def test_special_keys(key: str) -> None:
+    """Test that special keys can be specified with qualifiers."""
+    # Test that a table key named {key} can be a required key:
+    schema = toml_schema.loads(f"""
+        "{key} = {{ required = true }}" = "boolean"
+    """)
+    schema.validate({key: True})
+
+    # Test that a table key named {key} can be a non-required key:
+    schema = toml_schema.loads(f"""
+        "{key} = {{ required = false }}" = "boolean"
+    """)
+    schema.validate({key: True})
+
+    # Test that a table key named {key} cannot be marked as hidden:
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema = toml_schema.loads(f"""
+            "{key} = {{ hidden = true }}" = "boolean"
+        """)
+    assert (
+        str(exc_info.value)
+        == f"'{key}': Value {{'hidden': True}} not in: "
+        '{ union = [ "string", { required = "boolean" } ] }'
+        or str(exc_info.value) == f"'{key}': Value {{'hidden': True}} not in union."
+    )
+
+
 def test_reference() -> None:
     """Test references."""
     schema = toml_schema.loads("""
@@ -1379,6 +1407,64 @@ def test_reference() -> None:
     with pytest.raises(toml_schema.SchemaError) as exc_info:
         schema.validate({"quantum": {"wave-function": True}})
     assert str(exc_info.value) == "'quantum.wave-function': Value True not in union."
+
+
+def test_key_rerefence() -> None:
+    """Test reference in the table key."""
+    schema = toml_schema.loads("""
+        "ref = 'def.key'" = "boolean"
+
+        [def]
+        key = "enum = ['Red', 'Green', 'Blue']"
+    """)
+    schema.validate({"Red": True, "Green": False, "Blue": True})
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"Purple": True})
+    assert str(exc_info.value) == "root: Key 'Purple' not in schema."
+
+    schema = toml_schema.loads("""
+        "ref = 'def.key'" = "boolean"
+
+        [def]
+        key = { "union" = [
+            "ref = 'def.name'",
+            "enum = [ '*' ]",
+        ] }
+        name = "pattern = '^[a-zA-Z]*$'"
+    """)
+    schema.validate({"Red": True, "Green": False, "*": True, "": False})
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({"Purple-1": True})
+    assert str(exc_info.value) == "root: Key 'Purple-1' not in schema."
+
+    # Make sure that key reference to non-strings are not valid:
+    schema = toml_schema.loads("""
+        "ref = 'def.key'" = "boolean"
+
+        [def]
+        key = "integer"
+    """)
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema.validate({3: True})  # type: ignore[dict-item]
+    assert (
+        str(exc_info.value) == "root: Key '3' not in schema: "
+        """{ "ref = 'def.key'" = "boolean", def = { key = "integer" } }"""
+    )
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema = toml_schema.loads("""
+            "ref = 'def.key'" = "boolean"
+        """)
+    assert str(exc_info.value) == "root: Reference to non-existing key: def"
+
+    with pytest.raises(toml_schema.SchemaError) as exc_info:
+        schema = toml_schema.loads("""
+            "ref = 'def.my.key'" = "boolean"
+
+            [def]
+            my = "integer"
+        """)
+    assert str(exc_info.value) == "root: Reference to non-existing sub-key: def.my.key"
 
 
 def test_file_reference(tmp_path: pathlib.Path) -> None:
