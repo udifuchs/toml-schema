@@ -1,0 +1,1 @@
+'tool.setuptools.package-dir': Key '-' not in schema.

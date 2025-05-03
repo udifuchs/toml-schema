@@ -1,0 +1,1 @@
+'tool.setuptools.dynamic.version': Value {'attr': '_own_version_helper.'} does not match exactly one in union.

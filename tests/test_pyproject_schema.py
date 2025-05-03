@@ -13,10 +13,38 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib
 
+from validate_pyproject import formats
+
 import toml_schema
+from toml_schema._toml_schema import Ref
 
 # Set to True to generate the errors.txt files instead of comparing againt them:
 WRITE_ERROR_FILES = False
+
+# The following is a method to handle special checks for "ref = 'format.*'" strings.
+# It works by monkey-patching the Ref.validate method.
+
+# This example uses the functions in validate_project.formats for the special checks.
+# For example,  "ref = 'format.python-module-name-relaxed'" is checked with
+# the function: validate_project.formats.format.python_module_name_relaxed
+
+ref_original_validate = Ref.validate
+
+
+def ref_validate(self: Ref, value: toml_schema.TOMLValue, /, *, context: str) -> None:
+    """Validate format references using validate_pyproject.formats."""
+    ref_original_validate(self, value, context=context)
+    if self.ref.startswith("format."):
+        ref_format = self.ref.split(".", 2)[1]
+        if ref_format in ("email", "uri"):
+            return
+        ref_format = ref_format.replace("-", "_")
+        check: bool = getattr(formats, ref_format)(value)
+        if not check:
+            raise toml_schema.SchemaError(f"Invalid format {self.ref}", context)
+
+
+Ref.validate = ref_validate  # type: ignore[method-assign]
 
 
 def list_toml_files() -> Generator[tuple[toml_schema.Table, pathlib.Path]]:
@@ -52,12 +80,8 @@ def list_toml_files() -> Generator[tuple[toml_schema.Table, pathlib.Path]]:
             "examples/validate-pyproject-invalid/localtool/fail1.toml",
             "examples/validate-pyproject-invalid/simple/pep639.toml",
             "examples/validate-pyproject-invalid/cibuildwheel/overrides-noaction.toml",
-            "examples/validate-pyproject-invalid/setuptools/attr/missing-attr-name.toml",
             "examples/validate-pyproject-invalid/setuptools/dependencies/invalid-extra-name.toml",
             "examples/validate-pyproject-invalid/setuptools/cmdclass/invalid-value.toml",
-            "examples/validate-pyproject-invalid/setuptools/package-dir/invalid-name.toml",
-            "examples/validate-pyproject-invalid/setuptools/packages/invalid-stub-name.toml",
-            "examples/validate-pyproject-invalid/setuptools/packages/invalid-name.toml",
             "examples/validate-pyproject-invalid/pep621/dynamic/static_entry_points_listed_as_dynamic.toml",
             "examples/validate-pyproject-invalid/pep621/missing-fields/missing-version.toml",
             "examples/validate-pyproject-invalid/pep621/missing-fields/empty-author.toml",

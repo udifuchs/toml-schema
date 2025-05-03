@@ -325,7 +325,7 @@ def get_toml_type_options(  # noqa: C901, PLR0912, PLR0915
             return '''"ref = 'format.uri'"'''
         # The format value is not part of the json schema specification.
         if json_type == "string":
-            todo(f"{key}: Adding generic string format rule: {json_format}")
+            info(f"{key}: Adding generic string format rule: {json_format}")
             FORMAT[global_filename][json_format] = '''"pattern = '^.*$'"'''
             return f'''"ref = 'format.{json_format}'"'''
         if json_format == "uint8":
