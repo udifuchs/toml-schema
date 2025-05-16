@@ -184,6 +184,18 @@ wave-function = "ref = 'def.complex'"
     user.name = "John"
     ```
 
+### Extra options for arrays
+
+Extra options for arrays can be added as extra items in the array. The following example demonstrates the three available options:
+```
+numbers = [
+    "integer",
+    "min-items = 1",
+    "max-items = 3",
+    "unique-items = true",
+]
+```
+
 ### Extra options for keys
 
 It is also possible to specify options for the keys of a table. For example, to specify that the "owner" key is required in the root table and that the "name" key is required in the "owner" table, use:
@@ -211,7 +223,7 @@ If you need to have the key "union" in your schema, you will have to specify it 
 "pattern = '^union$'" = "string"
 ```
 
-### Usage:
+### Usage
 
 There is a command-line tool for validating a TOML file with a schema.
 For example, to validate the project `pyproject.toml`:
